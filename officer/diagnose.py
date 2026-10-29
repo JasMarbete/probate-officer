@@ -15,25 +15,7 @@ from pydantic import ValidationError
 import config
 from officer import llm, prompts, rules, store
 from officer.models import Diagnosis
-
-# The tool the model must call to answer. Its schema is BUILD_SPEC.md Section 8.
-# "refuse_out_of_scope" is left out on purpose: only the code can produce a refusal.
-SUBMIT_DIAGNOSIS_TOOL = {
-    "name": "submit_diagnosis",
-    "description": "Record the final diagnosis for this probate case.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "summary": {"type": "string", "description": "2 to 3 plain-English sentences"},
-            "stop_reasons": {"type": "array", "items": {"type": "string"}},
-            "rules_cited": {"type": "array", "items": {"type": "string"}},
-            "next_action": {"type": "string", "enum": ["stop_case", "route_to_examiner", "escalate"]},
-            "confidence": {"type": "string", "enum": ["low", "medium", "high"]},
-        },
-        "required": ["summary", "stop_reasons", "rules_cited", "next_action", "confidence"],
-    },
-}
-
+from officer.tools import SUBMIT_DIAGNOSIS_TOOL
 
 # Starts the summary of every fallback escalation. The evals use it to count "unfinished" runs.
 UNFINISHED_PREFIX = "The diagnoser could not produce a valid diagnosis"

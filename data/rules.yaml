@@ -104,7 +104,7 @@
   name: Will text mentions a codicil that is not in the document list
   applies_to: [probate_will]
   kind: judgement
-  question: "Does the will text mention a codicil that is not listed among the documents received?"
+  question: "Does the will text avoid mentioning any codicil that is not listed among the documents received?"
   on_fail:
     stop_reason: CODICIL_QUERY
     action: escalate
@@ -114,7 +114,7 @@
   name: Deceased's name is consistent across documents
   applies_to: [probate_will, letters_of_administration]
   kind: judgement
-  question: "Is the deceased's name spelled the same way in every document and note?"
+  question: "Is the deceased's name spelled the same way everywhere it appears in the documents and notes? If only one document names the deceased, answer yes."
   on_fail:
     stop_reason: NAME_MISMATCH
     action: escalate

@@ -120,3 +120,19 @@ def latency_stats(seconds):
         return ordered[max(0, math.ceil(p * len(ordered)) - 1)]
 
     return rank(0.5), rank(0.95)
+
+
+def completion_rate(rows):
+    """Share of agent runs that reached submit_diagnosis, not the turn cap or an error. None for non-agent variants."""
+    done = [row["completed"] for row in rows if row["completed"] is not None]
+    if not done:
+        return None
+    return sum(1 for completed in done if completed) / len(done)
+
+
+def tool_error_rate(rows):
+    """Share of tool calls that returned an error. None if no tool was called."""
+    calls = sum(row["tool_calls"] for row in rows)
+    if not calls:
+        return None
+    return sum(row["tool_errors"] for row in rows) / calls

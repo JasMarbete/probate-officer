@@ -43,7 +43,7 @@ Regenerate the golden set:
 
 ## Results (v1, test split, 12 cases)
 
-Both rows come from the reports in `evals/results/`: diagnose from `20261029-082904_diagnose_test` (k=3, 36 runs), and rules from `20261029-082750_rules_test` (k=1, 12 runs).
+Both rows come from the reports in `evals/results/`: diagnose from `20261029-182146_diagnose_test` (prompt v2, k=3, 36 runs; the v1 run `20261029-082904_diagnose_test` gave the same numbers), and rules from `20261029-082750_rules_test` (k=1, 12 runs).
 
 | Metric | Diagnose (Haiku) | Rules only |
 |---|---|---|

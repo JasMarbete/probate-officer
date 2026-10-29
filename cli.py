@@ -3,13 +3,26 @@
 Usage: python cli.py <case_id> [--mode diagnose|rules|agent]
 
 `diagnose` (the default) makes one model call. `rules` makes none. `agent`
-arrives in Milestone 5.
+runs the tool-calling loop and prints its trace from the audit log.
 """
 
 import argparse
+import json
 import sys
 
-from officer import diagnose, llm
+from officer import agent, audit, diagnose, llm
+
+
+def _print_trace(run_id):
+    # One line per audit event, so the owner can follow what the agent did.
+    for record in audit.read_run(run_id):
+        detail = ""
+        if record["event"] == "tool_call":
+            detail = f"{record['name']} {json.dumps(record['args'])} -> {json.dumps(record['output'], default=str)[:120]}"
+        elif record["event"] == "model_turn":
+            detail = f"stop_reason={record['stop_reason']} tokens={record['input_tokens']}/{record['output_tokens']}"
+        print(f"  [{record['event']}] {detail}".rstrip())
+    print()
 
 
 def _print_diagnosis(diagnosis):
@@ -35,13 +48,11 @@ def main(argv=None):
     parser.add_argument("--mode", choices=["diagnose", "rules", "agent"], default="diagnose")
     args = parser.parse_args(argv)
 
-    if args.mode == "agent":
-        print("Agent mode arrives in Milestone 5.")
-        return 2
-
     llm.reset_usage()
     try:
-        if args.mode == "diagnose":
+        if args.mode == "agent":
+            diagnosis, _ = agent.run_case(args.case_id)
+        elif args.mode == "diagnose":
             diagnosis = diagnose.diagnose(args.case_id)
         else:
             diagnosis = diagnose.rules_only(args.case_id)
@@ -49,6 +60,8 @@ def main(argv=None):
         print(f"Error: {error}", file=sys.stderr)
         return 1
 
+    if args.mode == "agent":
+        _print_trace(audit.last_run_id())
     _print_diagnosis(diagnosis)
     _print_cost()
     return 0

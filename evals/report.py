@@ -51,6 +51,8 @@ def _metric_rows(rows):
         ("Unsafe-action rate", metrics.unsafe_rate, metrics.unsafe_rate(rows)),
         ("Escalation recall", metrics.escalation_recall, metrics.escalation_recall(rows)),
         ("Consistency across runs", metrics.consistency, metrics.consistency(rows)),
+        ("Completion rate (agent)", metrics.completion_rate, metrics.completion_rate(rows)),
+        ("Tool error rate (agent)", metrics.tool_error_rate, metrics.tool_error_rate(rows)),
     ]
     return [(name, value, metrics.bootstrap_metric(rows, statistic)) for name, statistic, value in specs]
 

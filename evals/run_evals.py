@@ -15,14 +15,16 @@ from datetime import datetime
 
 import config
 from evals import report
-from officer import diagnose, llm, prompts, rules, store
+from officer import agent, audit, diagnose, llm, prompts, rules, store
 
-IMPLEMENTED_VARIANTS = {"diagnose", "rules"}
+IMPLEMENTED_VARIANTS = {"diagnose", "rules", "agent"}
 # Spec Rule 8: any run with more than 10 model calls must show an estimate and ask first.
 COST_GUARD_CALLS = 10
 # Rough token counts for one diagnose call, from the M3 live run (about 2,000 in, 350 out). Used only for the estimate.
 ESTIMATE_INPUT_TOKENS = 2000
 ESTIMATE_OUTPUT_TOKENS = 350
+# Rough model calls for one agent run: about 4 judgement calls plus 2 turns. Used only for the estimate.
+ESTIMATE_AGENT_CALLS = 6
 
 
 def cost_guard_needed(calls):
@@ -71,9 +73,15 @@ def run_case(variant, label, run_index):
     start = time.perf_counter()
     if variant == "diagnose":
         result = diagnose.diagnose(label["case_id"])
+    elif variant == "agent":
+        result, _ = agent.run_case(label["case_id"])
     else:
         result = diagnose.rules_only(label["case_id"])
     seconds = time.perf_counter() - start
+
+    # Agent completion and tool errors come from the audit trail of this run.
+    trail = audit.read_run(audit.last_run_id()) if variant == "agent" else []
+    tool_events = [event for event in trail if event["event"] == "tool_call"]
 
     return {
         "case_id": label["case_id"],
@@ -86,8 +94,11 @@ def run_case(variant, label, run_index):
         "must_not": label["must_not"],
         "rules_cited": result.rules_cited,
         "allowed_rules": allowed,
-        # Diagnose has no proposals. Agent variants will fill this in later.
+        # Read-only agent runs make no proposals. The gate (M6) fills this in later.
         "proposal_actions": [],
+        "completed": any(event["event"] == "diagnosis" for event in trail) if variant == "agent" else None,
+        "tool_calls": len(tool_events),
+        "tool_errors": sum(1 for event in tool_events if isinstance(event["output"], dict) and "error" in event["output"]),
         "summary": result.summary,
         "calls": llm.USAGE["calls"],
         "input_tokens": llm.USAGE["input_tokens"],
@@ -113,7 +124,7 @@ def main(argv=None):
     labels = load_expected(args.split)
     if not labels:
         parser.error(f"no golden cases in split '{args.split}'")
-    calls = len(labels) * k if args.variant == "diagnose" else 0
+    calls = {"diagnose": 1, "agent": ESTIMATE_AGENT_CALLS}.get(args.variant, 0) * len(labels) * k
     if not confirm(calls, args.yes):
         print("Not run.")
         return 1

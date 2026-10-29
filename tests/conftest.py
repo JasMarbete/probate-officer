@@ -45,7 +45,8 @@ class FakeLLM:
 
     def __call__(self, system, messages, tools=None, tool_choice=None):
         # Record every call, so tests can check what was sent.
-        self.calls.append({"system": system, "messages": messages, "tools": tools, "tool_choice": tool_choice})
+        # Copy the list now: the agent keeps appending to it, and a later read must see what was sent.
+        self.calls.append({"system": system, "messages": list(messages), "tools": tools, "tool_choice": tool_choice})
         if not self.responses:
             raise AssertionError("fake LLM has no scripted response left")
         return self.responses.pop(0)
