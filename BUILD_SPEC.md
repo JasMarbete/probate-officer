@@ -93,6 +93,7 @@ These rules apply to every milestone.
   - `data/outbox/`
   - `data/preferences.jsonl`
   - `evals/results/`
+  - `data/shelf/` (owner's source material, never published; only paraphrased rules are committed)
   - `__pycache__/`
 - **Storage:** JSON files only. No database.
 
