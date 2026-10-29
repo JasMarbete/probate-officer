@@ -1,0 +1,121 @@
+# EXAMPLE RULES — replace with shelf data
+# Every rule below has source "EXAMPLE". None of them is an official probate rule.
+
+- id: R-DOC-01
+  name: Death certificate received
+  applies_to: [probate_will, letters_of_administration]
+  kind: deterministic
+  check: doc_received
+  args: {doc_type: death_certificate}
+  on_fail:
+    stop_reason: DEATH_CERT_MISSING
+    action: request_document
+    template: req_death_certificate
+  source: "EXAMPLE"
+
+- id: R-WILL-01
+  name: Original will must be lodged
+  applies_to: [probate_will]
+  kind: deterministic
+  check: doc_field_equals
+  args: {doc_type: will, field: original, value: true}
+  on_fail:
+    stop_reason: ORIGINAL_WILL_MISSING
+    action: request_document
+    template: req_original_will
+  source: "EXAMPLE"
+
+- id: R-WILL-05
+  name: Will appears signed and witnessed
+  applies_to: [probate_will]
+  kind: judgement
+  question: "Does the will text show the testator's signature and two witnesses?"
+  on_fail:
+    stop_reason: WILL_EXECUTION_QUERY
+    action: escalate
+  source: "EXAMPLE"
+
+- id: R-WILL-06
+  name: Applicant is a named executor in the will
+  applies_to: [probate_will]
+  kind: judgement
+  question: "Is the applicant named as an executor in the will text?"
+  on_fail:
+    stop_reason: APPLICANT_NOT_EXECUTOR
+    action: escalate
+  source: "EXAMPLE"
+
+- id: R-APP-01
+  name: Applicant address given
+  applies_to: [probate_will, letters_of_administration]
+  kind: deterministic
+  check: field_equals
+  args: {field: applicant.address_given, value: true}
+  on_fail:
+    stop_reason: APPLICANT_ADDRESS_MISSING
+    action: stop_case
+  source: "EXAMPLE"
+
+- id: R-DEC-01
+  name: Date of death present and not in the future
+  applies_to: [probate_will, letters_of_administration]
+  kind: deterministic
+  check: date_not_future
+  args: {field: deceased.date_of_death}
+  on_fail:
+    stop_reason: DATE_OF_DEATH_INVALID
+    action: stop_case
+  source: "EXAMPLE"
+
+- id: R-DEC-02
+  name: Domicile is England and Wales
+  applies_to: [probate_will, letters_of_administration]
+  kind: deterministic
+  check: field_in
+  args: {field: deceased.domicile, values: ["England and Wales"]}
+  on_fail:
+    stop_reason: DOMICILE_NOT_ENGLAND_WALES
+    action: escalate
+  source: "EXAMPLE"
+
+- id: R-EST-01
+  name: IHT route recorded
+  applies_to: [probate_will, letters_of_administration]
+  kind: deterministic
+  check: field_present
+  args: {field: estate.iht_route}
+  on_fail:
+    stop_reason: IHT_ROUTE_MISSING
+    action: stop_case
+  source: "EXAMPLE"
+
+- id: R-EST-02
+  name: Net estate value is no more than gross value
+  applies_to: [probate_will, letters_of_administration]
+  kind: deterministic
+  check: fields_compare
+  args: {left: estate.net_value, op: "<=", right: estate.gross_value}
+  on_fail:
+    stop_reason: NET_EXCEEDS_GROSS
+    action: escalate
+  source: "EXAMPLE"
+
+- id: R-WILL-07
+  name: Will text mentions a codicil that is not in the document list
+  applies_to: [probate_will]
+  kind: judgement
+  question: "Does the will text mention a codicil that is not listed among the documents received?"
+  on_fail:
+    stop_reason: CODICIL_QUERY
+    action: escalate
+  source: "EXAMPLE"
+
+- id: R-NAME-01
+  name: Deceased's name is consistent across documents
+  applies_to: [probate_will, letters_of_administration]
+  kind: judgement
+  question: "Is the deceased's name spelled the same way in every document and note?"
+  on_fail:
+    stop_reason: NAME_MISMATCH
+    action: escalate
+  source: "EXAMPLE"
