@@ -85,6 +85,48 @@ TOOLS = {
         "description": "Get a letter template.",
         "schema": {"type": "object", "properties": {"template_id": {"type": "string"}}, "required": ["template_id"]},
     },
+    "stop_case": {
+        "fn": None,
+        "kind": "WRITE",
+        "description": "Stop the case, with its stop reasons and a note for the applicant. This is a proposal; a human must approve it.",
+        "schema": {"type": "object", "properties": {
+            "case_id": {"type": "string"},
+            "stop_reasons": {"type": "array", "items": {"type": "string"}},
+            "note": {"type": "string"}}, "required": ["case_id", "stop_reasons", "note"]},
+    },
+    "request_document": {
+        "fn": None,
+        "kind": "WRITE",
+        "description": "Ask the applicant for a missing document, using a letter. This is a proposal; a human must approve it.",
+        "schema": {"type": "object", "properties": {
+            "case_id": {"type": "string"},
+            "template_id": {"type": "string"},
+            "letter_text": {"type": "string"}}, "required": ["case_id", "template_id", "letter_text"]},
+    },
+    "add_case_note": {
+        "fn": None,
+        "kind": "WRITE",
+        "description": "Add a note to the case. This is a proposal; a human must approve it.",
+        "schema": {"type": "object", "properties": {
+            "case_id": {"type": "string"},
+            "note": {"type": "string"}}, "required": ["case_id", "note"]},
+    },
+    "route_to_examiner": {
+        "fn": None,
+        "kind": "WRITE",
+        "description": "Route the case to an examiner. This is a proposal; a human must approve it.",
+        "schema": {"type": "object", "properties": {
+            "case_id": {"type": "string"},
+            "note": {"type": "string"}}, "required": ["case_id", "note"]},
+    },
+    "escalate": {
+        "fn": None,
+        "kind": "WRITE",
+        "description": "Escalate the case to a person. This is a proposal; a human must approve it.",
+        "schema": {"type": "object", "properties": {
+            "case_id": {"type": "string"},
+            "reason": {"type": "string"}}, "required": ["case_id", "reason"]},
+    },
     "submit_diagnosis": {
         "fn": None,
         "kind": "FINAL",

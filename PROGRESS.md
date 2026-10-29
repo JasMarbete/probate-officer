@@ -89,6 +89,23 @@ Milestone log for ProbateOfficer. Each milestone gets a dated entry.
 - **`--k` defaults to `config.EVAL_K` (3).** `rules` always runs k=1, as the spec says.
 - **The cost estimate uses fixed token counts** (2,000 in, 350 out per call). It is rough. Prices are still 0, so the cost shows $0.
 
+### M6: Write actions and the approval gate (2026-10-29)
+- Added `officer/gate.py`: `ALLOWED_TRANSITIONS`, and `Gate` with `propose`, `decide` and `_apply`. Nothing changes until `decide(..., approved=True)`. Each proposal can be decided once. Each decision is logged to the audit trail and to `data/preferences.jsonl`.
+- Added five WRITE tools to `officer/tools.py`: `stop_case`, `request_document`, `add_case_note`, `route_to_examiner`, `escalate`. The `execute` function routes them only to `gate.propose`.
+- Added templates `data/templates/req_death_certificate.txt` and `req_original_will.txt`. `get_template` now returns them.
+- `agent.run_case(..., allow_write=True)` now creates a gate and returns it. Without writes, a WRITE call returns an error to the model.
+- CLI agent mode allows writes, lists each proposal, and asks `approve? [y/n/skip]`. No terminal means everything stays pending.
+- Added the `agent_write` eval variant. It records proposals and never approves them.
+- Added `tests/test_gate.py` (11 tests). The suite has 119 tests, all passing.
+
+**Check output summary:**
+- Acceptance run: `printf 'y\n...' | cli.py PRB-0002 --mode agent`. The agent proposed `escalate`, which was approved. The case went from `issued` to `escalated`, and one preference line was written. The proposal was `escalate`, not `stop_case`, because of the `issued` misreading seen before. The gate tests cover `stop_case` and `request_document` directly.
+- After the run, the case file was restored from git and the test preference line was deleted.
+
+**Deviations:**
+- `execute` passes the gate to WRITE tools, and `run_case` returns the gate, which the spec implies but does not show.
+- `ALLOWED_TRANSITIONS` also allows `stopped` to `stopped`, because the spec lists `issued` or `stopped` as the source states.
+
 ### M5: Read-only agent loop and audit trail (2026-10-29)
 - Added `officer/audit.py`: `log` writes one JSON line per event to `logs/trace.jsonl`. `read_run` and `last_run_id` read it back.
 - Added `officer/tools.py`: the READ tools (`get_case`, `run_rule_checks`, `lookup_rule`, `get_template`), the `TOOLS` registry, `schemas()` and `execute()`. Also the `submit_diagnosis` schema, moved here from `diagnose.py`.

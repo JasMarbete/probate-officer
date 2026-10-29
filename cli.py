@@ -34,6 +34,30 @@ def _print_diagnosis(diagnosis):
     print(f"Summary:     {diagnosis.summary}")
 
 
+def _review_proposals(gate):
+    """Show each proposal and ask the owner. Nothing changes until the owner says y."""
+    if not gate.proposals:
+        print("No proposed actions.")
+        return
+    print("Proposed actions:")
+    for proposal in gate.proposals:
+        print(f"  #{proposal['id']} {proposal['action']} {json.dumps(proposal['args'])}")
+        try:
+            answer = input("  approve? [y/n/skip] ").strip().lower()
+        except EOFError:
+            # No terminal to answer on. Leave everything pending.
+            answer = "skip"
+        if answer == "y":
+            gate.decide(proposal["id"], True)
+            print("  approved and applied")
+        elif answer == "n":
+            gate.decide(proposal["id"], False)
+            print("  rejected")
+        else:
+            print("  left pending")
+    print()
+
+
 def _print_cost():
     print(
         f"Usage: {llm.USAGE['calls']} call(s), "
@@ -51,7 +75,7 @@ def main(argv=None):
     llm.reset_usage()
     try:
         if args.mode == "agent":
-            diagnosis, _ = agent.run_case(args.case_id)
+            diagnosis, gate = agent.run_case(args.case_id, allow_write=True)
         elif args.mode == "diagnose":
             diagnosis = diagnose.diagnose(args.case_id)
         else:
@@ -63,6 +87,8 @@ def main(argv=None):
     if args.mode == "agent":
         _print_trace(audit.last_run_id())
     _print_diagnosis(diagnosis)
+    if args.mode == "agent" and gate is not None:
+        _review_proposals(gate)
     _print_cost()
     return 0
 

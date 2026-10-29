@@ -13,6 +13,7 @@ from pydantic import ValidationError
 
 import config
 from officer import audit, llm, prompts, store, tools
+from officer.gate import Gate
 from officer.models import Diagnosis
 
 NUDGE = "Use the tools. Finish by calling submit_diagnosis."
@@ -42,9 +43,10 @@ def _submit(block, case_id):
 
 
 def run_case(case_id, allow_write=False):
-    """Run the agent on one case. Returns (diagnosis, gate). The gate is None until M6."""
+    """Run the agent on one case. Returns (diagnosis, gate). The gate is None when writes are not allowed."""
     run_id = secrets.token_hex(4)
     audit.log(run_id, case_id, "run_start")
+    gate = Gate(case_id, run_id) if allow_write else None
 
     # Scope guard: runs before the model is called at all.
     case = store.load_case(case_id)
@@ -76,7 +78,7 @@ def run_case(case_id, allow_write=False):
             # The model answered in text. Nudge it once. A second text-only turn ends the run.
             if nudged:
                 audit.log(run_id, case_id, "error", reason="model stopped without calling a tool twice")
-                return _escalation(case_id, "the model stopped without calling a tool."), None
+                return _escalation(case_id, "the model stopped without calling a tool."), gate
             nudged = True
             messages.append({"role": "user", "content": NUDGE})
             continue
@@ -87,14 +89,14 @@ def run_case(case_id, allow_write=False):
                 diagnosis, problem = _submit(block, case_id)
                 if diagnosis:
                     audit.log(run_id, case_id, "diagnosis", **diagnosis.model_dump(exclude={"case_id"}))
-                    return diagnosis, None
+                    return diagnosis, gate
                 # Send the problem back to the model as an error, so it can try again.
                 results.append({"type": "tool_result", "tool_use_id": block.id, "content": problem, "is_error": True})
                 continue
-            output = tools.execute(block.name, block.input)
+            output = tools.execute(block.name, block.input, gate)
             audit.log(run_id, case_id, "tool_call", name=block.name, args=block.input, output=output)
             results.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(output, default=str)})
         messages.append({"role": "user", "content": results})
 
     audit.log(run_id, case_id, "max_turns", limit=config.MAX_TURNS)
-    return _escalation(case_id, f"the turn limit of {config.MAX_TURNS} was reached."), None
+    return _escalation(case_id, f"the turn limit of {config.MAX_TURNS} was reached."), gate

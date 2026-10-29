@@ -27,8 +27,14 @@ def test_lookup_rule_found_and_missing(tmp_data):
     assert tools.execute("lookup_rule", {"rule_id": "R-FAKE-99"}) == {"error": "no rule R-FAKE-99"}
 
 
-def test_get_template_is_missing_until_m6(tmp_data):
-    assert tools.execute("get_template", {"template_id": "req_original_will"}) == {"error": "no template req_original_will"}
+def test_get_template_returns_the_letter_text(tmp_data):
+    result = tools.execute("get_template", {"template_id": "req_original_will"})
+    assert result["template_id"] == "req_original_will"
+    assert "original will" in result["text"]
+
+
+def test_get_template_missing_is_an_error(tmp_data):
+    assert tools.execute("get_template", {"template_id": "nope"}) == {"error": "no template nope"}
 
 
 def test_bad_arguments_come_back_as_an_error(tmp_data):

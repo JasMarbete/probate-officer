@@ -17,7 +17,7 @@ import config
 from evals import report
 from officer import agent, audit, diagnose, llm, prompts, rules, store
 
-IMPLEMENTED_VARIANTS = {"diagnose", "rules", "agent"}
+IMPLEMENTED_VARIANTS = {"diagnose", "rules", "agent", "agent_write"}
 # Spec Rule 8: any run with more than 10 model calls must show an estimate and ask first.
 COST_GUARD_CALLS = 10
 # Rough token counts for one diagnose call, from the M3 live run (about 2,000 in, 350 out). Used only for the estimate.
@@ -71,16 +71,21 @@ def run_case(variant, label, run_index):
 
     llm.reset_usage()
     start = time.perf_counter()
+    proposals = []
     if variant == "diagnose":
         result = diagnose.diagnose(label["case_id"])
     elif variant == "agent":
         result, _ = agent.run_case(label["case_id"])
+    elif variant == "agent_write":
+        # Writes are allowed, so proposals are recorded. Nothing is approved in an eval run.
+        result, gate = agent.run_case(label["case_id"], allow_write=True)
+        proposals = [p["action"] for p in gate.proposals] if gate else []
     else:
         result = diagnose.rules_only(label["case_id"])
     seconds = time.perf_counter() - start
 
     # Agent completion and tool errors come from the audit trail of this run.
-    trail = audit.read_run(audit.last_run_id()) if variant == "agent" else []
+    trail = audit.read_run(audit.last_run_id()) if variant in ("agent", "agent_write") else []
     tool_events = [event for event in trail if event["event"] == "tool_call"]
 
     return {
@@ -95,8 +100,8 @@ def run_case(variant, label, run_index):
         "rules_cited": result.rules_cited,
         "allowed_rules": allowed,
         # Read-only agent runs make no proposals. The gate (M6) fills this in later.
-        "proposal_actions": [],
-        "completed": any(event["event"] == "diagnosis" for event in trail) if variant == "agent" else None,
+        "proposal_actions": proposals if variant == "agent_write" else [],
+        "completed": any(event["event"] == "diagnosis" for event in trail) if variant in ("agent", "agent_write") else None,
         "tool_calls": len(tool_events),
         "tool_errors": sum(1 for event in tool_events if isinstance(event["output"], dict) and "error" in event["output"]),
         "summary": result.summary,
@@ -124,7 +129,7 @@ def main(argv=None):
     labels = load_expected(args.split)
     if not labels:
         parser.error(f"no golden cases in split '{args.split}'")
-    calls = {"diagnose": 1, "agent": ESTIMATE_AGENT_CALLS}.get(args.variant, 0) * len(labels) * k
+    calls = {"diagnose": 1, "agent": ESTIMATE_AGENT_CALLS, "agent_write": ESTIMATE_AGENT_CALLS}.get(args.variant, 0) * len(labels) * k
     if not confirm(calls, args.yes):
         print("Not run.")
         return 1

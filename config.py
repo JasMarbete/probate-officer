@@ -16,10 +16,11 @@ MAX_TOKENS = 1024
 # Stops the agent loop from running forever if the model never finishes.
 MAX_TURNS = 8
 
-# Prices in USD per million tokens. The owner fills these from Anthropic's pricing page.
-# While they are 0.0, the cost functions print a warning.
-PRICE_IN_PER_M = 0.0
-PRICE_OUT_PER_M = 0.0
+# Prices in USD per million tokens for claude-haiku-5-5, prompts up to 100K tokens.
+# Source: https://claude.com/pricing ("Prompts ≤ 100K tokens": $0.10 input, $0.50 output).
+# Prompts over 100K tokens cost more ($0.50 input, $2.50 output). Our prompts are a few thousand tokens.
+PRICE_IN_PER_M = 0.10
+PRICE_OUT_PER_M = 0.50
 
 # Only these case states can be processed. Anything else is refused in code, before any API call.
 IN_SCOPE_STATES = {"issued", "stopped"}
