@@ -54,7 +54,8 @@ def _metric_rows(rows):
         ("Completion rate (agent)", metrics.completion_rate, metrics.completion_rate(rows)),
         ("Tool error rate (agent)", metrics.tool_error_rate, metrics.tool_error_rate(rows)),
     ]
-    return [(name, value, metrics.bootstrap_metric(rows, statistic)) for name, statistic, value in specs]
+    # Intervals resample whole cases, so the k runs of one case stay together.
+    return [(name, value, metrics.bootstrap_by_case(rows, statistic)) for name, statistic, value in specs]
 
 
 def metrics_section(rows):
@@ -123,7 +124,7 @@ def build_report(rows, settings):
         f"- Date: {settings['date']}",
         f"- Cases: {cases}, runs: {len(rows)}",
         "",
-        "## Metrics (95% bootstrap CIs)",
+        "## Metrics (95% bootstrap CIs, resampled by case)",
         metrics_section(rows),
         "",
     ]
@@ -144,3 +145,42 @@ def build_report(rows, settings):
         "",
     ]
     return "\n".join(lines)
+
+
+def _settings_from(folder):
+    """Settings from settings.json, or from the Settings lines of an older report.md."""
+    import json
+    if (folder / "settings.json").exists():
+        return json.loads((folder / "settings.json").read_text(encoding="utf-8"))
+    keys = {"Variant": "variant", "Split": "split", "k": "k", "Model": "model", "Prompt version": "prompt_version", "Date": "date"}
+    settings = {}
+    for line in (folder / "report.md").read_text(encoding="utf-8").splitlines():
+        if line.startswith("- ") and ": " in line:
+            label, value = line[2:].split(": ", 1)
+            if label in keys:
+                settings[keys[label]] = value
+    return settings
+
+
+def rebuild(folder):
+    """Regenerate report.md from the saved rows. Used after a change to how metrics are reported."""
+    import json
+    rows = [json.loads(line) for line in (folder / "rows.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    for row in rows:
+        # Older rows lack the agent fields. They are not agent runs, so these values are correct.
+        row.setdefault("completed", None)
+        row.setdefault("tool_calls", 0)
+        row.setdefault("tool_errors", 0)
+        row.setdefault("letters", [])
+        # Rows written before the fix counted a scope-guard refusal as unfinished. It is a correct finish.
+        if row["got_next_action"] == "refuse_out_of_scope" and row["completed"] is False:
+            row["completed"] = True
+    (folder / "report.md").write_text(build_report(rows, _settings_from(folder)), encoding="utf-8")
+
+
+if __name__ == "__main__":
+    import sys
+    from pathlib import Path
+    for name in sys.argv[1:]:
+        rebuild(Path(name))
+        print(f"rebuilt {name}/report.md")

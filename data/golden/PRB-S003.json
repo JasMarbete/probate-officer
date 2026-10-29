@@ -1,0 +1,37 @@
+{
+  "case_id": "PRB-S003",
+  "state": "issued",
+  "application_type": "probate_will",
+  "applicant": {
+    "name": "Test Person A",
+    "role": "executor",
+    "address_given": true
+  },
+  "deceased": {
+    "name": "Test Person B",
+    "date_of_death": "2026-05-02",
+    "domicile": "England and Wales"
+  },
+  "estate": {
+    "gross_value": 412000,
+    "net_value": 398500,
+    "iht_route": "excepted"
+  },
+  "documents": [
+    {
+      "type": "will",
+      "received": true,
+      "original": false,
+      "text": "THIS IS THE LAST WILL of me, Test Person B. I revoke all earlier wills. I appoint my daughter, Test Person A, to be the executor of this will. I give my whole estate to my daughter, Test Person A. Signed by the testator, Test Person B, in our joint presence, and then by us in the testator's presence: Test Person C, witness. Test Person D, witness."
+    },
+    {
+      "type": "death_certificate",
+      "received": true,
+      "original": null,
+      "text": "Death certificate. Name of deceased: Test Person B."
+    }
+  ],
+  "notes": [
+    "Applicant says the original will is held by their solicitor and a copy was sent instead."
+  ]
+}

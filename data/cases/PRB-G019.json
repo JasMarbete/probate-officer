@@ -1,6 +1,6 @@
 {
   "case_id": "PRB-G019",
-  "state": "granted",
+  "state": "issued",
   "application_type": "probate_will",
   "applicant": {
     "name": "Test Person A",
@@ -15,7 +15,7 @@
   "estate": {
     "gross_value": 183667,
     "net_value": 180358,
-    "iht_route": "excepted"
+    "iht_route": ""
   },
   "documents": [
     {

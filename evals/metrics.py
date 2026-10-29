@@ -110,6 +110,23 @@ def bootstrap_metric(items, statistic, n=2000, seed=config.SEED):
     return values[int(0.025 * len(values))], values[min(len(values) - 1, int(0.975 * len(values)))]
 
 
+def bootstrap_by_case(rows, statistic, n=2000, seed=config.SEED):
+    """95% interval of `statistic`, resampling whole cases rather than single runs.
+
+    With k runs per case, the runs of one case are not independent. Resampling cases
+    keeps each case's runs together, so the interval is not made too narrow by repeats.
+    """
+    groups = defaultdict(list)
+    for row in rows:
+        groups[row["case_id"]].append(row)
+    cases = list(groups.values())
+
+    def flatten(sample):
+        return statistic([row for group in sample for row in group])
+
+    return bootstrap_metric(cases, flatten, n, seed)
+
+
 def latency_stats(seconds):
     """Median and 95th percentile of the run times, by the nearest-rank method."""
     if not seconds:

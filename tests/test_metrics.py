@@ -127,3 +127,15 @@ def test_latency_stats_nearest_rank():
 
 def test_latency_stats_of_nothing_is_zero():
     assert metrics.latency_stats([]) == (0.0, 0.0)
+
+
+def test_bootstrap_by_case_keeps_runs_of_one_case_together():
+    # Two cases, three runs each. Case A always right, case B always wrong.
+    rows = [_row(case_id="A") for _ in range(3)] + [_row(case_id="B", got_next_action="escalate") for _ in range(3)]
+
+    def acc(sample):
+        return metrics.accuracy([(r["expected_next_action"], r["got_next_action"]) for r in sample])
+
+    low, high = metrics.bootstrap_by_case(rows, acc)
+    # Resampling cases can only give 0, 0.5 or 1, so the interval spans the full range.
+    assert (low, high) == (0.0, 1.0)

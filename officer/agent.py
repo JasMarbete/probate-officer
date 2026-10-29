@@ -42,8 +42,12 @@ def _submit(block, case_id):
     return diagnosis, None
 
 
-def run_case(case_id, allow_write=False):
-    """Run the agent on one case. Returns (diagnosis, gate). The gate is None when writes are not allowed."""
+def run_case(case_id, allow_write=False, llm_only=False):
+    """Run the agent on one case. Returns (diagnosis, gate). The gate is None when writes are not allowed.
+
+    `llm_only` is the ablation: no run_rule_checks tool, and the rules YAML is pasted into the prompt,
+    so the model must apply the rules itself.
+    """
     run_id = secrets.token_hex(4)
     audit.log(run_id, case_id, "run_start")
     gate = Gate(case_id, run_id) if allow_write else None
@@ -61,10 +65,15 @@ def run_case(case_id, allow_write=False):
             confidence="high",
         ), None
 
-    messages = [{"role": "user", "content": f"Process case {case_id}."}]
+    offered = [s for s in tools.schemas(allow_write) if not (llm_only and s["name"] == "run_rule_checks")]
+    intro = f"Process case {case_id}."
+    if llm_only:
+        intro += ("\n<rules>\n" + config.RULES_PATH.read_text(encoding="utf-8") + "\n</rules>\n"
+                  "No rule-check tool is available. Apply these rules yourself.")
+    messages = [{"role": "user", "content": intro}]
     nudged = False
     for _ in range(config.MAX_TURNS):
-        response = llm.call(prompts.AGENT_SYSTEM, messages, tools=tools.schemas(allow_write))
+        response = llm.call(prompts.AGENT_SYSTEM, messages, tools=offered)
         audit.log(
             run_id, case_id, "model_turn",
             input_tokens=response.usage.input_tokens,

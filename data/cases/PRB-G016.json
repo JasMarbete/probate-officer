@@ -15,18 +15,18 @@
   "estate": {
     "gross_value": 407419,
     "net_value": 395569,
-    "iht_route": ""
+    "iht_route": "excepted"
   },
   "documents": [
     {
       "type": "will",
       "received": true,
-      "original": false,
+      "original": true,
       "text": "I, Test Person B, declare this to be my last will. Signed: Test Person B. Witness 1: Test Person C. Witness 2: Test Person D. I appoint Test Person A as my executor."
     },
     {
       "type": "death_certificate",
-      "received": true,
+      "received": false,
       "original": null,
       "text": null
     }

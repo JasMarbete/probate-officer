@@ -5,7 +5,7 @@
   "applicant": {
     "name": "Test Person A",
     "role": "executor",
-    "address_given": false
+    "address_given": true
   },
   "deceased": {
     "name": "Test Person B",

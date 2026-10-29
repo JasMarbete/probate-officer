@@ -1,0 +1,35 @@
+{
+  "case_id": "PRB-T0221",
+  "state": "issued",
+  "application_type": "probate_will",
+  "applicant": {
+    "name": "Test Person A",
+    "role": "executor",
+    "address_given": true
+  },
+  "deceased": {
+    "name": "Test Person B",
+    "date_of_death": "2026-02-15",
+    "domicile": "England and Wales"
+  },
+  "estate": {
+    "gross_value": 527277,
+    "net_value": 517130,
+    "iht_route": "excepted"
+  },
+  "documents": [
+    {
+      "type": "will",
+      "received": true,
+      "original": true,
+      "text": "I, Test Person B, declare this to be my last will. Signed: Test Person B. Witness 1: Test Person C. Witness 2: Test Person D. I appoint Test Person A as my executor."
+    },
+    {
+      "type": "death_certificate",
+      "received": false,
+      "original": null,
+      "text": null
+    }
+  ],
+  "notes": []
+}

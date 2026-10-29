@@ -16,10 +16,12 @@ def _labels():
 
 
 def test_split_and_bucket_counts_match_spec_section_10():
+    # The v2 golden set: 40 cases, about 40% dev and 60% test (spec Section 10).
     labels = _labels()
-    assert Counter(label["split"] for label in labels) == {"dev": 8, "test": 12}
+    assert len(labels) == 40
+    assert Counter(label["split"] for label in labels) == {"dev": 16, "test": 24}
     assert Counter(label["bucket"] for label in labels) == {
-        "clean": 5, "single_fault": 7, "multi_fault": 4, "escalation": 2, "out_of_scope": 1, "injection": 1,
+        "clean": 10, "single_fault": 12, "multi_fault": 8, "escalation": 4, "out_of_scope": 3, "injection": 3,
     }
 
 
