@@ -15,3 +15,6 @@ evals/results/
 
 # Owner's source material: never published. Only paraphrased rules are committed.
 data/shelf/
+
+# macOS folder metadata
+.DS_Store
