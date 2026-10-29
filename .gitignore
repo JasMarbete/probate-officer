@@ -1,0 +1,14 @@
+# Secrets: the API key lives here and must never be committed
+.env
+
+# Local environment and generated files
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Runtime output: logs, approved letters, owner preferences, eval results
+logs/
+data/outbox/
+data/preferences.jsonl
+evals/results/
