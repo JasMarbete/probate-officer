@@ -14,14 +14,13 @@ Milestone log for ProbateOfficer. Each milestone gets a dated entry.
 **Check output summary:**
 - `pip install -r requirements.txt`: succeeded in `.venv` (Python 3.14.3).
 - `pytest`: runs, collects 0 tests, exit code 5 (pytest's "no tests collected"). The spec allows 0 tests for M0.
-- `python scripts/ping.py`: not run against the live API, because no key is set. It exits 1 with the message "No ANTHROPIC_API_KEY found", as designed. The owner needs to add a key to `.env` and rerun it.
+- `python scripts/ping.py`: passed against the live API on 2026-10-29. Output: `Reply: OK`, `Model: claude-haiku-5-5`, 14 input tokens, 4 output tokens. Without a key, it exits 1 with "No ANTHROPIC_API_KEY found", as designed.
 - `config.py` and `officer` import cleanly.
 
 ## Open questions
 
 - **Shelf data:** `data/shelf/` is empty, so M2 will use the EXAMPLE rules unless shelf content is added first.
 - **Prices:** `PRICE_IN_PER_M` and `PRICE_OUT_PER_M` in `config.py` are still 0.0. The owner fills them from Anthropic's pricing page.
-- **Live API check:** `scripts/ping.py` needs the owner's `ANTHROPIC_API_KEY` in `.env`. It has not been run against the live API yet.
 - **Python version:** the spec asks for 3.11+. The project venv uses Python 3.14 (`/opt/homebrew/bin/python3.14`). The system `python3` is 3.9, which is too old.
 
 ## Deviations
