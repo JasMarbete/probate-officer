@@ -11,10 +11,10 @@ from pathlib import Path
 # Make the project root importable, so `import config` works when run from any folder.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import anthropic
 from dotenv import load_dotenv
 
 import config
+from officer import llm
 
 # Read ANTHROPIC_API_KEY from the .env file in the project root, if it exists.
 load_dotenv(config.ROOT / ".env")
@@ -26,10 +26,8 @@ def main():
         print("No ANTHROPIC_API_KEY found. Copy .env.example to .env and add your key.")
         return 1
 
-    client = anthropic.Anthropic()
-    response = client.messages.create(
-        model=config.MODEL,
-        max_tokens=config.MAX_TOKENS,
+    response = llm.call(
+        system="You are a connection test. Keep replies short.",
         messages=[{"role": "user", "content": "Reply with OK"}],
     )
 

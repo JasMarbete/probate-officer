@@ -42,6 +42,28 @@ Milestone log for ProbateOfficer. Each milestone gets a dated entry.
   - `PRB-0002`: R-DOC-01 fails (`DEATH_CERT_MISSING`, `request_document`). All others pass.
   - `PRB-0003`: R-WILL-01 fails (`ORIGINAL_WILL_MISSING`, `request_document`). All others pass.
 
+### M3: Single-call diagnoser (2026-10-29)
+- Added `officer/llm.py`: the only module that calls the SDK. Lazy client, retry on 429 and 529, `USAGE`, `reset_usage()` and `cost_usd()`.
+- Added `officer/prompts.py` with `PROMPT_VERSION = "v1"` and `DIAGNOSE_SYSTEM`, copied verbatim from spec Section 7.
+- Added `officer/diagnose.py`: `diagnose` (one forced-tool call), `rules_only` (baseline, no call), and `SUBMIT_DIAGNOSIS_TOOL`.
+- Added `cli.py`: `python cli.py <case_id> [--mode diagnose|rules]`. Prints the diagnosis and the usage and cost.
+- Switched `scripts/ping.py` to `llm.call`, which removes the M0 deviation.
+- Added `tests/conftest.py` (`fake_llm` and `tmp_data` fixtures) and `tests/test_diagnose.py` (11 tests). All 38 tests in the suite pass.
+
+**Check output summary:**
+- `env -u ANTHROPIC_API_KEY pytest`: 38 passed. The suite needs no key.
+- `python cli.py PRB-0002` (live, one call): `Next action: stop_case`, `Stop reasons: DEATH_CERT_MISSING`, `Rules cited: R-DOC-01, R-WILL-05, R-WILL-06, R-WILL-07, R-NAME-01`. Usage: 1 call, 1987 input tokens, 338 output tokens. Cost shows $0.000000 because the prices are still 0.
+- Out-of-scope check, using a temp copy with `PRB-0001` set to `granted`: `next_action: refuse_out_of_scope`, `API calls: 0`.
+
+**Deviations:**
+- **`SUBMIT_DIAGNOSIS_TOOL` lives in `diagnose.py`.** Spec Section 4 puts tool schemas in `tools.py`, which is an M5 file. It moves there in M5.
+- **Retry count is an interpretation.** Spec says "3 attempts at 2s, 4s, 8s". This implementation makes 3 attempts in total, with waits of 2s and 4s between them. Owner to confirm.
+- **The retry path is not tested.** The suite tests the diagnoser with a fake LLM, so `llm.call` retries are untested. Add a test in M5 or later.
+- **`cli.py` loads `.env` itself.** The first live run showed the key would not load without it.
+
+## Open questions (added in M3)
+- **Prices:** `PRICE_IN_PER_M` and `PRICE_OUT_PER_M` are still 0. The owner fills them in from Anthropic's pricing page. Until then, costs are reported as $0.
+
 ## Shelf ambiguities
 - The shelf is empty. Every rule uses `source: "EXAMPLE"`.
 - The probate source pack (`data/shelf/probate_process_source_pack.md`) is not converted into rules yet. The owner's review comes first.
