@@ -9,8 +9,12 @@ import sys
 import time
 
 import anthropic
+from dotenv import load_dotenv
 
 import config
+
+# Read ANTHROPIC_API_KEY from .env, so every entry point (cli, evals, scripts) finds the key.
+load_dotenv(config.ROOT / ".env")
 
 # Three attempts in total. Waits of 2s and then 4s go between them.
 ATTEMPTS = 3
@@ -71,10 +75,16 @@ def call(system, messages, tools=None, tool_choice=None):
     return response
 
 
+# Set after the first warning, so an eval run prints it once rather than once per case.
+_price_warning_shown = False
+
+
 def cost_usd(usage=USAGE):
     """Cost in USD from token counts and the prices in config.py."""
-    if config.PRICE_IN_PER_M == 0 and config.PRICE_OUT_PER_M == 0:
+    global _price_warning_shown
+    if config.PRICE_IN_PER_M == 0 and config.PRICE_OUT_PER_M == 0 and not _price_warning_shown:
         print("warning: prices in config.py are 0, so the cost shown is 0. Fill them in from Anthropic's pricing page.", file=sys.stderr)
+        _price_warning_shown = True
     return (
         usage["input_tokens"] * config.PRICE_IN_PER_M / 1_000_000
         + usage["output_tokens"] * config.PRICE_OUT_PER_M / 1_000_000

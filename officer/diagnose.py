@@ -35,6 +35,10 @@ SUBMIT_DIAGNOSIS_TOOL = {
 }
 
 
+# Starts the summary of every fallback escalation. The evals use it to count "unfinished" runs.
+UNFINISHED_PREFIX = "The diagnoser could not produce a valid diagnosis"
+
+
 def _refusal(case_id, state):
     return Diagnosis(
         case_id=case_id,
@@ -50,7 +54,7 @@ def _escalation(case_id, reason):
     # The safe fallback. Any problem with the model's output sends the case to a person.
     return Diagnosis(
         case_id=case_id,
-        summary=f"The diagnoser could not produce a valid diagnosis, so a person should review this case. Reason: {reason}",
+        summary=f"{UNFINISHED_PREFIX}, so a person should review this case. Reason: {reason}",
         stop_reasons=[],
         rules_cited=[],
         next_action="escalate",

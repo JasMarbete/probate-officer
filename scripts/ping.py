@@ -11,13 +11,8 @@ from pathlib import Path
 # Make the project root importable, so `import config` works when run from any folder.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from dotenv import load_dotenv
-
 import config
 from officer import llm
-
-# Read ANTHROPIC_API_KEY from the .env file in the project root, if it exists.
-load_dotenv(config.ROOT / ".env")
 
 
 def main():

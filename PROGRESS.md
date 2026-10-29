@@ -61,6 +61,34 @@ Milestone log for ProbateOfficer. Each milestone gets a dated entry.
 - **The retry path is not tested.** The suite tests the diagnoser with a fake LLM, so `llm.call` retries are untested. Add a test in M5 or later.
 - **`cli.py` loads `.env` itself.** The first live run showed the key would not load without it.
 
+### M4: Golden set, evals v1, README v1 (2026-10-29)
+- Added `scripts/make_cases.py --golden`: 20 synthetic cases (`PRB-G001` to `PRB-G020`) and `data/golden/expected.jsonl`. Mix: clean 5, single_fault 7, multi_fault 4, escalation 2, out_of_scope 1, injection 1. Split: 8 dev, 12 test.
+- Labels are derived from the fault list and from the action each stop reason carries in `rules.yaml`. The script checks the deterministic labels against the real rules engine and stops on any mismatch.
+- Added `evals/metrics.py` (all the spec metrics, plus bootstrap helpers) and `tests/test_metrics.py`.
+- Added `evals/run_evals.py` (variants `diagnose` and `rules`, the cost guard, and per-run rows) and `evals/report.py` (report.md).
+- Added `tests/test_golden.py` (split and bucket counts, and label checks against the rules) and `tests/test_report.py` (failure categories and the cost guard).
+- Wrote `README.md` v1 with the results table. Each number matches the report files.
+- Moved `.env` loading into `officer/llm.py`, so every entry point gets the key. `cli.py` and `ping.py` had their own copies, and `run_evals` was missing it.
+- The price warning prints once per run, not once per case.
+
+**Check output summary:**
+- `pytest`: 66 passed.
+- Dev split, diagnose, k=1 (8 calls): all metrics 1.000, 0 failures.
+- Test split, rules, k=1 (12 runs): next-action accuracy 0.917. One failure: `PRB-G018` (escalation case) routed to the examiner, which is unsafe. Escalation recall 0.000.
+- Test split, diagnose, k=3 (36 runs, `--yes`): all metrics 1.000, 0 failures. The actual call count was 33, because the 3 out-of-scope runs made no calls. The guard estimate counts all 36.
+
+**Honesty notes:**
+- Both test runs came after the dev run. No prompt was changed, so `PROMPT_VERSION` stays `v1`. No test failures were seen, so there was nothing to retune.
+- The diagnose result of 1.000 on 12 synthetic cases shows little. The intervals collapse to [1.000, 1.000]. The golden set is generated from the same rules as the checks, so it is easy by design. Treat the number as a sanity check, not evidence of real-world quality.
+- Golden labels are not yet reviewed by the owner (spec Section 14: spot-check 1 in 3). That review is needed before results are trusted.
+
+**Deviations:**
+- **`evals/report.py` is a separate file.** It keeps `run_evals.py` under about 200 lines. The spec's layout does not list it.
+- **`scripts/make_cases.py` is 222 lines**, over the spec's 200-line guide. Proposed split, not yet done: move the fault functions and `FAULTS` into a separate `scripts/faults.py`. The owner decides.
+- **`tests/test_golden.py` and `tests/test_report.py` are extra test files.** The spec's Section 4 layout does not list them, but they cover the golden labels and the report logic.
+- **`--k` defaults to `config.EVAL_K` (3).** `rules` always runs k=1, as the spec says.
+- **The cost estimate uses fixed token counts** (2,000 in, 350 out per call). It is rough. Prices are still 0, so the cost shows $0.
+
 ## Open questions (added in M3)
 - **Prices:** `PRICE_IN_PER_M` and `PRICE_OUT_PER_M` are still 0. The owner fills them in from Anthropic's pricing page. Until then, costs are reported as $0.
 

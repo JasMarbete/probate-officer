@@ -9,13 +9,7 @@ arrives in Milestone 5.
 import argparse
 import sys
 
-from dotenv import load_dotenv
-
-import config
 from officer import diagnose, llm
-
-# Read ANTHROPIC_API_KEY from .env before any model call. Without this, the key is only found if exported in the shell.
-load_dotenv(config.ROOT / ".env")
 
 
 def _print_diagnosis(diagnosis):
