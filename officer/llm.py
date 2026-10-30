@@ -5,6 +5,7 @@ retries, usage counting and cost. Tests replace `call()` with a fake, so they
 never need an API key.
 """
 
+import os
 import sys
 import time
 
@@ -29,9 +30,18 @@ USAGE = {"input_tokens": 0, "output_tokens": 0, "calls": 0}
 _client = None
 
 
+NO_KEY_MESSAGE = (
+    "No ANTHROPIC_API_KEY is set. Copy .env.example to .env and add your key. "
+    "Everything that does not call the model (the tests, --mode rules, the Evals tab) works without one."
+)
+
+
 def _get_client():
     global _client
     if _client is None:
+        # Fail with a clear message, not the SDK's authentication traceback.
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            raise RuntimeError(NO_KEY_MESSAGE)
         _client = anthropic.Anthropic()
     return _client
 

@@ -8,6 +8,41 @@ ProbateOfficer sits in the seat of a probate support officer. It takes a case th
 
 > Demo: a short screen recording of the Streamlit app goes here (`docs/demo.gif`).
 
+## Start here
+
+You need **Python 3.11 or newer**. Check with `python3 --version`. On a Mac, `python3` is often 3.9; if so, use a newer one, for example `python3.12` (`brew install python@3.12`).
+
+**1. Install and run the tests (5 minutes, no API key, no cost).**
+
+```bash
+git clone <this repo> probate-officer && cd probate-officer
+python3.12 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+.venv/bin/pytest
+```
+
+You should see `150 passed`. The tests never call the model.
+
+**2. See it without a key.**
+
+```bash
+.venv/bin/python cli.py PRB-S004 --mode rules     # the rules alone send an unwitnessed will to an examiner
+.venv/bin/streamlit run app.py                    # open the Evals tab: every result, and what the evals caught
+```
+
+**3. Run the agent (needs an Anthropic API key; each run costs under half a cent).**
+
+```bash
+cp .env.example .env                              # put your ANTHROPIC_API_KEY in .env
+.venv/bin/python scripts/ping.py                  # should print: Reply: OK
+.venv/bin/python cli.py PRB-S004 --mode agent     # the agent catches what the rules missed, then asks you to approve
+.venv/bin/python scripts/showcase.py --yes        # all 8 showcase scenarios, about 2 minutes
+```
+
+In the app, the **Case diagnosis** tab runs any showcase scenario live. Run `.venv/bin/python scripts/watch_trace.py` in a second terminal to watch each step as it happens.
+
+**4. What to read.** `evals/snapshot/prompt_story.md` (what the evals caught), `DESIGN.md` (why it is built this way), and the `README.md` in each `officer/` component folder (its contract).
+
 ## How it works
 
 ```mermaid
@@ -88,10 +123,10 @@ Four of the six were problems in the measurement, not the system. That is why th
 Requirements: Python 3.11 or later.
 
 ```bash
-python3 -m venv .venv
+python3.12 -m venv .venv        # any Python 3.11 or newer
 .venv/bin/pip install -r requirements.txt
 cp .env.example .env          # then put your ANTHROPIC_API_KEY in .env
-.venv/bin/pytest              # no API key needed
+.venv/bin/pytest              # 150 tests, no API key needed
 ```
 
 Diagnose one case, or run the agent with approval prompts:

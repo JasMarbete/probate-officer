@@ -91,13 +91,17 @@ with diagnosis_tab:
     with agent_col:
         st.markdown("#### Agent (Haiku, tools, approval gate)")
         if st.button("Run agent", type="primary"):
-            with st.spinner("The agent is working: reading the case, running the checks, proposing actions..."):
-                llm.reset_usage()
-                diagnosis, gate = agent.run_case(case_id, allow_write=True)
-                state["result"] = {
-                    "case_id": case_id, "diagnosis": diagnosis, "gate": gate,
-                    "run_id": audit.last_run_id(), "tokens": dict(llm.USAGE), "cost": llm.cost_usd(),
-                }
+            try:
+                with st.spinner("The agent is working: reading the case, running the checks, proposing actions..."):
+                    llm.reset_usage()
+                    diagnosis, gate = agent.run_case(case_id, allow_write=True)
+                    state["result"] = {
+                        "case_id": case_id, "diagnosis": diagnosis, "gate": gate,
+                        "run_id": audit.last_run_id(), "tokens": dict(llm.USAGE), "cost": llm.cost_usd(),
+                    }
+            except RuntimeError as error:
+                # Most often a missing API key. The rules-only panel and the Evals tab still work.
+                st.error(str(error))
         result = state.get("result")
         if result and result["case_id"] == case_id:
             _show_diagnosis(result["diagnosis"])

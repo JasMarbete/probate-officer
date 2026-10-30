@@ -81,7 +81,7 @@ def main(argv=None):
             diagnosis = diagnose.diagnose(args.case_id)
         else:
             diagnosis = diagnose.rules_only(args.case_id)
-    except (FileNotFoundError, ValueError) as error:
+    except (FileNotFoundError, ValueError, RuntimeError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
 
