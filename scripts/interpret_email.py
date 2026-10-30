@@ -13,7 +13,7 @@ from pathlib import Path
 # Make the project root importable, so `import officer` works from any folder.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from officer import intake
+from officer.intake import email_reader
 
 
 def main(argv=None):
@@ -23,7 +23,7 @@ def main(argv=None):
     text = Path(args.file).read_text(encoding="utf-8") if args.file else sys.stdin.read()
 
     print("DRY RUN: nothing is sent and CCD is not changed.", file=sys.stderr)
-    print(json.dumps(intake.interpret(text), indent=2))
+    print(json.dumps(email_reader.interpret(text), indent=2))
     return 0
 
 

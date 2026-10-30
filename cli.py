@@ -10,7 +10,8 @@ import argparse
 import json
 import sys
 
-from officer import agent, audit, diagnose, llm
+from officer import audit, llm
+from officer.decision import agent, diagnose
 
 
 def _print_trace(run_id):

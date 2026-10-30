@@ -6,7 +6,9 @@ These read the real data/ folder and do not write to it.
 import json
 
 import config
-from officer import diagnose, rules, store
+from officer.checks import rules
+from officer.decision import diagnose
+from officer.intake import store
 
 
 def _scenarios():

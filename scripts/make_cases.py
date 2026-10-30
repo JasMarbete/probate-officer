@@ -20,7 +20,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import config
-from officer import rules, store
+from officer.checks import rules
+from officer.intake import store
 from officer.models import Case
 
 from case_factory import INJECTION_NOTE, FAULTS, build_case  # noqa: E402

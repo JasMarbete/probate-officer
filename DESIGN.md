@@ -6,9 +6,13 @@ Why ProbateOfficer is built the way it is. Each point names the alternative that
 
 Python checks what Python can check. The 11 example rules are plain functions over the case record: "death certificate received", "net value no more than gross", and so on. Rules are exact, cheap, repeatable and easy to test. An LLM reads free text only where a rule needs judgement, such as whether a will shows two witnesses. That split keeps the model's work small and its errors contained. The rejected alternative was an LLM that reads the whole case and decides. That is harder to test, costs more per case, and cannot be scored against a rule.
 
+## Why seven components in one repo
+
+The job was broken into steps first, and each step became a component with one job and a written contract. A person can be handed any one of them, and its tests and the evals show whether a change broke anything. They share one repo because they share one data contract (`officer/models.py`). Across separate repos, every change to a case or a diagnosis would need seven coordinated releases. The rejected alternative was one repo per component, which adds versioning work and no safety at this size.
+
 ## Why a hand-written loop, not an agent framework
 
-`officer/agent.py` is a plain loop: call the model, run the tool calls, feed the results back, stop at a cap. There is no LangChain, LlamaIndex, CrewAI or Autogen. The loop fits on one screen, so every line can be read and explained. The rejected alternative was a framework. It would hide the turn cap, the nudge and the validation feedback, which are the safety behaviours this project needs to show.
+`officer/decision/agent.py` is a plain loop: call the model, run the tool calls, feed the results back, stop at a cap. There is no LangChain, LlamaIndex, CrewAI or Autogen. The loop fits on one screen, so every line can be read and explained. The rejected alternative was a framework. It would hide the turn cap, the nudge and the validation feedback, which are the safety behaviours this project needs to show.
 
 ## Why Haiku
 

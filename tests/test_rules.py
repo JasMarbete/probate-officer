@@ -1,4 +1,4 @@
-"""Tests for officer/rules.py: every check type, the applicability filter, and full runs.
+"""Tests for officer/checks/rules.py: every check type, the applicability filter, and full runs.
 
 Each check gets at least one pass test and one fail test. Missing fields and
 missing documents must count as a fail, never a crash.
@@ -7,7 +7,8 @@ missing documents must count as a fail, never a crash.
 import pytest
 
 import config
-from officer import rules, store
+from officer.checks import rules
+from officer.intake import store
 from officer.models import Case
 
 

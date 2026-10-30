@@ -1,4 +1,4 @@
-"""Tests for officer/store.py: loading, saving, listing and resetting case files.
+"""Tests for officer/intake/store.py: loading, saving, listing and resetting case files.
 
 Tests write only to a temporary folder. The one test that reads the real
 data/cases/ folder is read-only, and it checks the three hand-written cases.
@@ -9,7 +9,7 @@ import json
 import pytest
 
 import config
-from officer import store
+from officer.intake import store
 from officer.models import Case
 
 

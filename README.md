@@ -32,6 +32,22 @@ flowchart LR
 - **Everything leaves a trace.** One `run_id` ties together every model call, tool call and decision in `logs/trace.jsonl`.
 - **The scope guard is code, not prompt.** Out-of-scope cases never reach the model.
 
+## Seven components
+
+The officer's job breaks into seven steps, and the code has one component per step. Each is its own package under `officer/`, with a `README.md` stating its contract (inputs, outputs, dependencies, tests), so each can be built, tested and changed on its own.
+
+| # | Component | The step in the job | Model? | Tests |
+|---|---|---|---|---|
+| 1 | [`intake`](officer/intake/README.md) | Receive the case, check it is well-formed | No | `test_store`, `test_intake` |
+| 2 | [`scope`](officer/scope/README.md) | Is this case mine to handle? | No | `test_scope` |
+| 3 | [`checks`](officer/checks/README.md) | Are the documents and fields there? | No | `test_rules`, `test_golden` |
+| 4 | [`judgement`](officer/judgement/README.md) | Read the will: witnessed, executor, codicil, names | Yes, one call per rule | `test_judgement`, component eval |
+| 5 | [`decision`](officer/decision/README.md) | Stop, route to an examiner, or escalate? | Yes | `test_agent`, `test_diagnose`, `test_tools` |
+| 6 | [`gate`](officer/gate/README.md) | Act, but only with a person's approval | No | `test_gate` |
+| 7 | [`audit`](officer/audit/README.md) | Record what happened | No | `test_audit` |
+
+Shared by all of them: `officer/models.py` (the data contract), `officer/llm.py` (the only module that calls the API) and `officer/prompts.py` (every prompt, under one version). Dependencies run one way: `judgement` uses `checks`, and `decision` uses the rest. The **evals** in `evals/` sit across all seven: the component eval measures `judgement` alone, and the end-to-end evals measure the whole chain.
+
 ## Results
 
 Every approach was run on the same **24 held-out test cases**. The model-based approaches ran each case 3 times, because a model can answer differently each time. Brackets are 95% bootstrap intervals, resampled by case.
@@ -114,11 +130,11 @@ Regenerate the data and the baseline:
 
 | Control | Where |
 |---|---|
-| Scope guard runs before any model call; only `issued` and `stopped` cases are processed | `officer/diagnose.py`, `officer/agent.py` |
-| `refuse_out_of_scope` can only come from code; the model's tool schema does not offer it, and the code rejects it if sent | `officer/tools.py`, `officer/agent.py` |
-| WRITE tools only ever reach `gate.propose`; nothing changes without `decide(..., approved=True)` | `officer/tools.py`, `officer/gate.py` |
-| Only the transitions in `ALLOWED_TRANSITIONS` are possible | `officer/gate.py` |
-| All free text is wrapped in tags, and the prompts say it is evidence only | `officer/prompts.py`, `officer/rules.py` |
+| Scope guard runs before any model call; only `issued` and `stopped` cases are processed | `officer/decision/diagnose.py`, `officer/decision/agent.py` |
+| `refuse_out_of_scope` can only come from code; the model's tool schema does not offer it, and the code rejects it if sent | `officer/decision/tools.py`, `officer/decision/agent.py` |
+| WRITE tools only ever reach `gate.propose`; nothing changes without `decide(..., approved=True)` | `officer/decision/tools.py`, `officer/gate/approval.py` |
+| Only the transitions in `ALLOWED_TRANSITIONS` are possible | `officer/gate/approval.py` |
+| All free text is wrapped in tags, and the prompts say it is evidence only | `officer/prompts.py`, `officer/checks/rules.py` |
 | Prompt-injection cases are in the golden set, and the unsafe-action rate is reported | `scripts/make_cases.py`, `evals/` |
 | Turn cap of 8, and a cost guard on any run over 10 model calls | `config.py`, `evals/run_evals.py` |
 | Tests never call the API | `tests/conftest.py` |
@@ -137,14 +153,14 @@ Regenerate the data and the baseline:
 
 - **Learn from the preference log.** Every approve or reject in `data/preferences.jsonl` is a labelled example of what a real officer wants. Enough of them could train a reward model to rank proposals before a person sees them.
 - **Real rules.** Replace the EXAMPLE rules with paraphrased rules from the probate source material.
-- **Email intake.** `officer/intake.py` already reads an incoming email and plans the CCD calls as a dry run. An LLM version, evaluated the same way, is the next step.
+- **Email intake.** `officer/intake/email_reader.py` already reads an incoming email and plans the CCD calls as a dry run. An LLM version, evaluated the same way, is the next step.
 - **Harder cases.** Varied, LLM-rewritten case text, so the evals test reading rather than template matching.
 
 ## Repo map
 
 | Path | What it is |
 |---|---|
-| `officer/` | The system: models, store, rules, LLM wrapper, prompts, diagnoser, agent, tools, gate, audit, email intake |
+| `officer/` | The system, as seven component packages (see above) plus the shared `models.py`, `llm.py` and `prompts.py` |
 | `evals/` | Eval runner, metrics, report, judge, component eval, comparison |
 | `baseline/` | PyTorch baseline and its training data |
 | `scripts/` | Case generator, email interpreter, API ping |

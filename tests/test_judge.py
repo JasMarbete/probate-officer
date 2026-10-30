@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import config
 from evals import component, judge
-from officer import agent
+from officer.decision import agent
 
 
 def _score_tool(score):

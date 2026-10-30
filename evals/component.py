@@ -10,7 +10,9 @@ from collections import defaultdict
 from datetime import datetime
 
 import config
-from officer import rules, store
+from officer.checks import rules
+from officer.intake import store
+from officer.judgement import judge_rules
 from evals import run_evals
 
 
@@ -20,7 +22,7 @@ def component_rows(labels):
     for label in labels:
         store.reset_case(label["case_id"])
         case = store.load_case(label["case_id"])
-        findings = {finding.rule_id: finding for finding in rules.run_judgement(case)}
+        findings = {finding.rule_id: finding for finding in judge_rules.run_judgement(case)}
         for rule in rules.judgement_rules_for(case):
             expected_fail = rule["on_fail"]["stop_reason"] in label["stop_reasons"]
             got_fail = not findings[rule["id"]].passed

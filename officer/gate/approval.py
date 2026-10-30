@@ -9,7 +9,8 @@ import json
 from datetime import datetime
 
 import config
-from officer import audit, store
+from officer import audit
+from officer.intake import store
 
 # The only state changes allowed. Any other move raises an error.
 ALLOWED_TRANSITIONS = {

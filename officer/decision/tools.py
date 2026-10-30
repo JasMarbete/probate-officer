@@ -8,7 +8,9 @@ and its input schema. `schemas()` turns the registry into the list the API expec
 """
 
 import config
-from officer import rules, store
+from officer.checks import rules
+from officer.intake import store
+from officer.judgement import judge_rules
 
 # The schema for submit_diagnosis. It is also used by the single-call diagnoser, so it lives here.
 # "refuse_out_of_scope" is left out on purpose: only the code can produce a refusal.
@@ -42,7 +44,7 @@ def run_rule_checks(case_id):
         case = store.load_case(case_id)
     except (FileNotFoundError, ValueError) as error:
         return {"error": str(error)}
-    return [finding.model_dump() for finding in rules.run_all(case) if not finding.passed]
+    return [finding.model_dump() for finding in judge_rules.run_all(case) if not finding.passed]
 
 
 def lookup_rule(rule_id):

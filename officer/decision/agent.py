@@ -12,9 +12,12 @@ import secrets
 from pydantic import ValidationError
 
 import config
-from officer import audit, llm, prompts, store, tools
+from officer import audit, llm, prompts
+from officer.decision import tools
 from officer.gate import Gate
+from officer.intake import store
 from officer.models import Diagnosis
+from officer.scope import guard
 
 NUDGE = "Use the tools. Finish by calling submit_diagnosis."
 
@@ -54,16 +57,9 @@ def run_case(case_id, allow_write=False, llm_only=False):
 
     # Scope guard: runs before the model is called at all.
     case = store.load_case(case_id)
-    if case.state not in config.IN_SCOPE_STATES:
+    if not guard.in_scope(case):
         audit.log(run_id, case_id, "refused", state=case.state)
-        return Diagnosis(
-            case_id=case_id,
-            summary=f"This case is in state '{case.state}', which is outside the scope of this tool. It was refused without a model call.",
-            stop_reasons=[],
-            rules_cited=[],
-            next_action="refuse_out_of_scope",
-            confidence="high",
-        ), None
+        return guard.refusal(case_id, case.state), None
 
     offered = [s for s in tools.schemas(allow_write) if not (llm_only and s["name"] == "run_rule_checks")]
     intro = f"Process case {case_id}."

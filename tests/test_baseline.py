@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 import config
-from officer import store
+from officer.intake import store
 
 sys.path.insert(0, str(Path(config.ROOT / "baseline")))
 import train_baseline as baseline  # noqa: E402

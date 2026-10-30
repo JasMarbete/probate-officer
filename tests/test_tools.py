@@ -1,6 +1,6 @@
-"""Tests for officer/tools.py: READ tool results, errors as data, the registry and the write-gate rule."""
+"""Tests for officer/decision/tools.py: READ tool results, errors as data, the registry and the write-gate rule."""
 
-from officer import tools
+from officer.decision import tools
 
 PASS = {"passed": True, "reason": "evidence found"}
 

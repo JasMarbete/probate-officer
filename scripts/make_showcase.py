@@ -19,7 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import config
-from officer import store
+from officer.intake import store
 from officer.models import Case
 
 from make_cases import check_deterministic  # noqa: E402

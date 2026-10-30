@@ -15,7 +15,10 @@ from datetime import datetime
 
 import config
 from evals import report
-from officer import agent, audit, diagnose, llm, prompts, rules, store
+from officer import audit, llm, prompts
+from officer.checks import rules
+from officer.decision import agent, diagnose
+from officer.intake import store
 
 IMPLEMENTED_VARIANTS = {"diagnose", "rules", "agent", "agent_write", "llm_only", "baseline"}
 

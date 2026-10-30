@@ -15,7 +15,9 @@ import json
 import streamlit as st
 
 import config
-from officer import agent, audit, diagnose, llm, store
+from officer import audit, llm
+from officer.decision import agent, diagnose
+from officer.intake import store
 
 SNAPSHOT = config.ROOT / "evals" / "snapshot"
 

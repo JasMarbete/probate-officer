@@ -17,7 +17,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import config
 from evals import run_evals
-from officer import agent, diagnose, llm, store
+from officer import llm
+from officer.decision import agent, diagnose
+from officer.intake import store
 
 SNAPSHOT = config.ROOT / "evals" / "snapshot"
 

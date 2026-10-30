@@ -1,9 +1,11 @@
-"""Tests for officer/diagnose.py: the scope guard, parsing, safe fallbacks and the rules-only baseline.
+"""Tests for officer/decision/diagnose.py: the scope guard, parsing, safe fallbacks and the rules-only baseline.
 
 No test calls the API. The fake LLM supplies every model response.
 """
 
-from officer import diagnose, llm, store
+from officer import llm
+from officer.decision import diagnose
+from officer.intake import store
 
 VALID_OUTPUT = {
     "summary": "The death certificate is missing. The applicant must supply it.",

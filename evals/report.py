@@ -4,8 +4,8 @@ Split out of run_evals.py to keep each file under about 200 lines (spec Section 
 """
 
 from evals import metrics
-from officer import rules
-from officer.diagnose import UNFINISHED_PREFIX
+from officer.checks import rules
+from officer.decision.diagnose import UNFINISHED_PREFIX
 
 
 def categorise(row):

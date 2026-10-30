@@ -89,6 +89,16 @@ Milestone log for ProbateOfficer. Each milestone gets a dated entry.
 - **`--k` defaults to `config.EVAL_K` (3).** `rules` always runs k=1, as the spec says.
 - **The cost estimate uses fixed token counts** (2,000 in, 350 out per call). It is rough. Prices are still 0, so the cost shows $0.
 
+### Restructure into seven components (2026-10-30)
+- `officer/` is now one package per step in the job: `intake` (store, email reader), `scope` (new `guard.py`), `checks` (deterministic rules), `judgement` (new `judge_rules.py`, split from `rules.py`), `decision` (agent, diagnose, tools), `gate` (approval) and `audit` (trail). `models.py`, `llm.py` and `prompts.py` stay shared.
+- The scope guard was copied in the diagnoser and the agent. It is now one module, used by both.
+- Each component has a `README.md` contract. Added `tests/test_scope.py` and `tests/test_audit.py`. 148 tests pass.
+- Every file in `officer/` is now under 200 lines. `rules.py` (211) became `checks/rules.py` (147) and `judgement/judge_rules.py` (76).
+
+**Behaviour unchanged, checked four ways:** the 141 existing tests pass. Rules-only output is identical on all 51 cases before and after. Regenerated golden, training and showcase data are byte-identical. The live showcase matches 8 of 8.
+
+**Deviation:** the spec's Section 4 layout lists flat files in `officer/` (such as `officer/rules.py`). The paths changed, but the spec's rules hold: `officer/llm.py` is still the only module that imports `anthropic`, and tests still mock `officer.llm.call`. Older entries below keep the old paths as history.
+
 ### M7: Full evals (2026-10-29)
 - Golden set grows to 40 cases (16 dev, 24 test) with the spec's v2 mix. `make_plan(20)` reproduces the v1 set exactly. The generator is split into `scripts/case_factory.py` and `scripts/make_cases.py`.
 - New variants: `llm_only` (no rule-check tool, rules pasted into the prompt), `agent_write` (proposals recorded, never approved), `baseline` (M8).

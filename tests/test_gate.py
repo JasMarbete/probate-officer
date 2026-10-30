@@ -1,4 +1,4 @@
-"""Tests for officer/gate.py and the write path: a proposal changes nothing, only approval applies, and every decision is logged."""
+"""Tests for officer/gate/approval.py and the write path: a proposal changes nothing, only approval applies, and every decision is logged."""
 
 import json
 from types import SimpleNamespace
@@ -6,7 +6,8 @@ from types import SimpleNamespace
 import pytest
 
 import config
-from officer import agent, gate as gate_module, store
+from officer.decision import agent
+from officer.intake import store
 from officer.gate import Gate
 
 

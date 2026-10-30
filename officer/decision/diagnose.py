@@ -12,24 +12,15 @@ import json
 
 from pydantic import ValidationError
 
-import config
-from officer import llm, prompts, rules, store
+from officer import llm, prompts
+from officer.checks import rules
+from officer.decision.tools import SUBMIT_DIAGNOSIS_TOOL
+from officer.intake import store
 from officer.models import Diagnosis
-from officer.tools import SUBMIT_DIAGNOSIS_TOOL
+from officer.scope import guard
 
 # Starts the summary of every fallback escalation. The evals use it to count "unfinished" runs.
 UNFINISHED_PREFIX = "The diagnoser could not produce a valid diagnosis"
-
-
-def _refusal(case_id, state):
-    return Diagnosis(
-        case_id=case_id,
-        summary=f"This case is in state '{state}', which is outside the scope of this tool. It was refused without a model call.",
-        stop_reasons=[],
-        rules_cited=[],
-        next_action="refuse_out_of_scope",
-        confidence="high",
-    )
 
 
 def _escalation(case_id, reason):
@@ -72,8 +63,8 @@ def diagnose(case_id):
     """Diagnose one case with one Haiku call. Out-of-scope cases get no call at all."""
     case = store.load_case(case_id)
     # Scope guard: runs before any model call.
-    if case.state not in config.IN_SCOPE_STATES:
-        return _refusal(case_id, case.state)
+    if not guard.in_scope(case):
+        return guard.refusal(case_id, case.state)
 
     failed = [finding for finding in rules.run_deterministic(case) if not finding.passed]
     judgement = rules.judgement_rules_for(case)
@@ -90,8 +81,8 @@ def diagnose(case_id):
 def rules_only(case_id):
     """The baseline: the same decision from the deterministic rules alone, with no model call."""
     case = store.load_case(case_id)
-    if case.state not in config.IN_SCOPE_STATES:
-        return _refusal(case_id, case.state)
+    if not guard.in_scope(case):
+        return guard.refusal(case_id, case.state)
 
     failed = [finding for finding in rules.run_deterministic(case) if not finding.passed]
     stop_reasons = list(dict.fromkeys(f.stop_reason for f in failed))

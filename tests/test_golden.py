@@ -7,7 +7,8 @@ import json
 from collections import Counter
 
 import config
-from officer import rules, store
+from officer.checks import rules
+from officer.intake import store
 
 
 def _labels():

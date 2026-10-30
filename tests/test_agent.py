@@ -1,4 +1,4 @@
-"""Tests for officer/agent.py: every branch of the loop, plus the audit trail.
+"""Tests for officer/decision/agent.py: every branch of the loop, plus the audit trail.
 
 The fake model scripts each turn. Tool calls that run judgement checks consume
 their own scripted verdicts, in the order the calls happen.
@@ -7,7 +7,8 @@ their own scripted verdicts, in the order the calls happen.
 from types import SimpleNamespace
 
 import config
-from officer import agent, audit
+from officer import audit
+from officer.decision import agent
 
 PASS = {"passed": True, "reason": "evidence found"}
 VALID = {
@@ -89,7 +90,7 @@ def test_a_refusal_from_the_model_is_sent_back(tmp_data, fake_llm):
 
 
 def test_out_of_scope_case_is_refused_before_any_model_call(tmp_data, fake_llm):
-    from officer import store
+    from officer.intake import store
     store.save_case(store.load_case("PRB-0001").model_copy(update={"state": "granted"}))
     diagnosis, _ = agent.run_case("PRB-0001")
     assert diagnosis.next_action == "refuse_out_of_scope"

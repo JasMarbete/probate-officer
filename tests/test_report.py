@@ -1,7 +1,7 @@
 """Tests for the failure categories in evals/report.py and the cost guard in evals/run_evals.py."""
 
 from evals import report, run_evals
-from officer.diagnose import UNFINISHED_PREFIX
+from officer.decision.diagnose import UNFINISHED_PREFIX
 
 
 def _row(**overrides):

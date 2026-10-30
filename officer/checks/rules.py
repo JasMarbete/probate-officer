@@ -1,7 +1,7 @@
-"""The rules engine: loads rules from data/rules.yaml and runs the deterministic checks.
+"""Component 3, deterministic checks: loads rules from data/rules.yaml and runs the checks Python can do.
 
 Deterministic rules are plain Python checks, so no model is needed for them.
-Judgement rules are only listed here. A model reads them in later milestones.
+`judgement_rules_for` only selects the judgement rules; component 4 (officer.judgement) reads them.
 Missing fields and missing documents count as a fail, never a crash.
 """
 
@@ -11,7 +11,6 @@ from datetime import date
 import yaml
 
 import config
-from officer import llm, prompts
 from officer.models import Case, Finding
 
 # Maps the comparison operators written in rules.yaml to Python functions.
@@ -146,66 +145,3 @@ def judgement_rules_for(case):
         for rule in load_rules()
         if rule["kind"] == "judgement" and applicable(rule, case)
     ]
-
-
-# Schema for the judge's answer. It is the only tool a judgement call may use (spec Section 8).
-RECORD_JUDGEMENT_TOOL = {
-    "name": "record_judgement",
-    "description": "Record whether the rule passes, with a one-sentence reason.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "passed": {"type": "boolean"},
-            "reason": {"type": "string"},
-        },
-        "required": ["passed", "reason"],
-    },
-}
-
-
-def _case_documents(case):
-    # Document text and notes, wrapped in one tag. The judge prompt says this is evidence only.
-    # The applicant and deceased are structured fields, not document text, so they are added here too.
-    parts = [f"[case] Applicant: {case.applicant.name} ({case.applicant.role}). Deceased: {case.deceased.name}."]
-    parts += [f"[{doc.type}] {doc.text}" for doc in case.documents if doc.text]
-    parts += [f"[note] {note}" for note in case.notes]
-    return "\n".join(parts)
-
-
-def _judge(rule, case):
-    """One model call for one judgement rule. Returns (passed, reason). Unclear answers count as a fail."""
-    response = llm.call(
-        prompts.JUDGE_RULE_SYSTEM,
-        messages=[{"role": "user", "content": f"<case_documents>{_case_documents(case)}</case_documents>\n<rule>{rule['question']}</rule>"}],
-        tools=[RECORD_JUDGEMENT_TOOL],
-        tool_choice={"type": "tool", "name": "record_judgement"},
-    )
-    for block in response.content:
-        if getattr(block, "type", None) == "tool_use" and block.name == "record_judgement":
-            # Only an explicit True passes. Anything else is a fail, as the judge prompt requires.
-            return block.input.get("passed") is True, str(block.input.get("reason", ""))
-    return False, "the judge did not return a verdict"
-
-
-def run_judgement(case):
-    """One judgement finding per applicable judgement rule. Each costs one model call."""
-    findings = []
-    for rule in judgement_rules_for(case):
-        passed, reason = _judge(rule, case)
-        if passed:
-            findings.append(Finding(rule_id=rule["id"], passed=True, reason=reason))
-        else:
-            on_fail = rule["on_fail"]
-            findings.append(Finding(
-                rule_id=rule["id"],
-                passed=False,
-                stop_reason=on_fail["stop_reason"],
-                action=on_fail["action"],
-                reason=reason,
-            ))
-    return findings
-
-
-def run_all(case):
-    """Deterministic findings followed by judgement findings."""
-    return run_deterministic(case) + run_judgement(case)
