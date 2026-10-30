@@ -68,10 +68,26 @@ def test_llm_only_hides_the_rule_check_tool_and_pastes_the_rules(tmp_data, fake_
     assert "<rules>" in intro and "R-DOC-01" in intro
 
 
-def test_export_writes_each_letter_with_its_missing_list_and_a_score_line(tmp_path):
-    rows = [{"letters": [{"id": "PRB-G013_0", "text": "Please send the certificate.", "missing": ["death certificate"]}]}]
+def test_export_writes_each_runs_letters_with_the_missing_list_and_a_score_line(tmp_path):
+    rows = [{"case_id": "PRB-G013", "run": 2, "letters": [{"id": "PRB-G013_0", "text": "Please send the certificate.", "missing": ["death certificate"]}]}]
     out = tmp_path / "letters.md"
     assert judge.export_letters(rows, out) == 1
     text = out.read_text()
-    assert "## PRB-G013_0" in text and "Missing documents: death certificate" in text
-    assert '"letter_id": "PRB-G013_0"' in text and '"plain_english": null' in text
+    assert "## PRB-G013_run2" in text and "Missing documents: death certificate" in text
+    assert '"letter_id": "PRB-G013_run2"' in text and '"plain_english": null' in text
+
+
+def test_letters_from_one_run_are_graded_together():
+    # Two missing documents, one letter each: the applicant gets both, so the judge sees both.
+    rows = [{"case_id": "PRB-G027", "run": 1, "letters": [
+        {"id": "PRB-G027_0", "text": "Send the death certificate.", "missing": ["death certificate", "original will"]},
+        {"id": "PRB-G027_1", "text": "Send the original will.", "missing": ["death certificate", "original will"]},
+    ]}]
+    [(key, text, missing)] = judge.correspondence(rows)
+    assert key == "PRB-G027_run1"
+    assert "death certificate" in text and "original will" in text
+
+
+def test_runs_of_the_same_case_get_different_keys():
+    rows = [{"case_id": "PRB-G016", "run": r, "letters": [{"id": "PRB-G016_0", "text": "x", "missing": []}]} for r in (1, 2)]
+    assert len({key for key, _, _ in judge.correspondence(rows)}) == 2

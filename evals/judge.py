@@ -37,6 +37,22 @@ RECORD_LETTER_SCORE_TOOL = {
 }
 
 
+def correspondence(rows):
+    """All the letters from one run on one case, joined, as (key, text, missing documents).
+
+    The judge grades what the applicant receives. When the agent writes one letter per
+    missing document, grading each letter alone against the full list would fail every one.
+    """
+    result = []
+    for row in rows:
+        letters = row.get("letters", [])
+        if letters:
+            key = f"{row['case_id']}_run{row.get('run', 1)}"
+            text = "\n\n--- next letter ---\n\n".join(letter["text"] for letter in letters)
+            result.append((key, text, letters[0]["missing"]))
+    return result
+
+
 def judge_letter(letter_text, missing):
     """Score one letter against the list of documents that are actually missing."""
     response = llm.call(
@@ -55,12 +71,8 @@ def judge_letter(letter_text, missing):
 
 
 def score_run(rows):
-    """Score every letter in an agent_write run. Returns {letter_id: score}."""
-    scores = {}
-    for row in rows:
-        for letter in row.get("letters", []):
-            scores[letter["id"]] = judge_letter(letter["text"], letter["missing"])
-    return scores
+    """Score the letters from every run in an agent_write run. Returns {case_run_key: score}."""
+    return {key: judge_letter(text, missing) for key, text, missing in correspondence(rows)}
 
 
 def calibrate(judge_scores, human_path=HUMAN_SCORES):
@@ -86,20 +98,19 @@ def calibrate(judge_scores, human_path=HUMAN_SCORES):
 def export_letters(rows, out_path):
     """Write every drafted letter to a readable file, with its missing documents and a blank score line to fill in."""
     lines = ["# Letters to score by hand", "",
-             "For each letter, copy its score line into evals/human_scores.jsonl and fill in the three values.",
+             "For each set of letters (one run on one case, as the applicant receives them), copy its score line into evals/human_scores.jsonl and fill in the three values.",
              "correct_documents: true if the letter asks for every missing document.",
              "nothing_invented: true if it asks for nothing beyond the missing list.",
              "plain_english: 1 (confusing) to 5 (clear, polite, plain English).", ""]
     count = 0
-    for row in rows:
-        for letter in row.get("letters", []):
-            count += 1
-            lines += [f"## {letter['id']}", "", f"Missing documents: {', '.join(letter['missing']) or 'none'}", "",
-                      "> " + letter["text"].replace("\n", "\n> "), "",
-                      "```json",
-                      json.dumps({"letter_id": letter["id"], "correct_documents": None,
-                                  "nothing_invented": None, "plain_english": None}),
-                      "```", ""]
+    for key, text, missing in correspondence(rows):
+        count += 1
+        lines += [f"## {key}", "", f"Missing documents: {', '.join(missing) or 'none'}", "",
+                  "> " + text.replace("\n", "\n> "), "",
+                  "```json",
+                  json.dumps({"letter_id": key, "correct_documents": None,
+                              "nothing_invented": None, "plain_english": None}),
+                  "```", ""]
     out_path.write_text("\n".join(lines), encoding="utf-8")
     return count
 
@@ -121,7 +132,7 @@ def main(argv=None):
     rows = [json.loads(line) for line in (Path(args.run) / "rows.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
     scores = score_run(rows)
     (Path(args.run) / "judge_scores.json").write_text(json.dumps(scores, indent=2), encoding="utf-8")
-    print(f"Scored {len(scores)} letter(s). Written to {Path(args.run) / 'judge_scores.json'}")
+    print(f"Scored {len(scores)} run(s) of letters. Written to {Path(args.run) / 'judge_scores.json'}")
 
     if args.calibrate:
         result = calibrate(scores)

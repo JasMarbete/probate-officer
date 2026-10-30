@@ -139,3 +139,10 @@ def test_bootstrap_by_case_keeps_runs_of_one_case_together():
     low, high = metrics.bootstrap_by_case(rows, acc)
     # Resampling cases can only give 0, 0.5 or 1, so the interval spans the full range.
     assert (low, high) == (0.0, 1.0)
+
+
+def test_unknown_citation_rate_counts_only_ids_that_do_not_exist():
+    rows = [_row(rules_cited=["R-DOC-01", "R-APP-01", "R-FAKE-99"], allowed_rules=["R-DOC-01"])]
+    # R-APP-01 is real but did not fail: off-list, not hallucinated.
+    assert metrics.unknown_citation_rate(rows, {"R-DOC-01", "R-APP-01"}) == pytest.approx(1 / 3)
+    assert metrics.invented_citation_rate(rows) == pytest.approx(2 / 3)

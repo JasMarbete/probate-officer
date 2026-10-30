@@ -144,10 +144,12 @@ with evals_tab:
                 "resampled by case. With 24 cases, differences inside overlapping intervals are not meaningful.")
     sections = [
         ("Ablation: every variant on the test split", "ablation.md"),
-        ("What the evals caught: agent prompt v2 vs v3", "prompt_story.md"),
+        ("What the evals caught: six findings, and how each was fixed", "prompt_story.md"),
         ("Judgement rules, tested alone", "component.md"),
+        ("Letter quality, scored by the LLM judge", "judge.md"),
         ("Failure analysis", "failure_analysis.md"),
-        ("Showcase run", "showcase.md"),
+        ("Showcase run (current)", "showcase.md"),
+        ("Showcase run before the v4 rule fix (6 of 8)", "showcase_v3.md"),
     ]
     for heading, name in sections:
         path = SNAPSHOT / name

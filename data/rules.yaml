@@ -29,7 +29,7 @@
   name: Will appears signed and witnessed
   applies_to: [probate_will]
   kind: judgement
-  question: "Does the will text show the testator's signature and two witnesses?"
+  question: "Does the will show it was signed by the testator and by two witnesses? The text is a transcription, so a signature appears as the signer's typed name, for example 'Signed: <name>' or '<name>, witness'."
   on_fail:
     stop_reason: WILL_EXECUTION_QUERY
     action: escalate

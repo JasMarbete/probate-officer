@@ -34,15 +34,38 @@ flowchart LR
 
 ## Results
 
-<!-- RESULTS -->
+Every approach was run on the same **24 held-out test cases**. The model-based approaches ran each case 3 times, because a model can answer differently each time. Brackets are 95% bootstrap intervals, resampled by case.
+
+| Approach | Next-action accuracy | Stop-reason F1 | Unsafe-action rate | Escalation recall | Cost per case |
+|---|---|---|---|---|---|
+| Rules only (no model) | 0.917 [0.79, 1.00] | 0.950 | **0.083** | **0.000** | $0 |
+| PyTorch baseline (text classifier) | 0.625 [0.42, 0.83] | 0.000 (by design) | 0.083 | 0.500 | $0 |
+| Single model call + rules | 1.000 | 1.000 | 0.000 | 1.000 | $0.0010 |
+| Agent (read-only tools) | 1.000 | 1.000 | 0.000 | 1.000 | $0.0038 |
+| Agent with write tools (proposals) | 1.000 | 0.992 | 0.000 | 1.000 | $0.0059 |
+| LLM only (no rule engine) | 1.000 | 0.992 | 0.000 | 1.000 | $0.0028 |
+
+- **What the model adds.** Rules alone can't read a will. They routed the unwitnessed-will and missing-codicil cases straight to an examiner. That is the unsafe-action rate, and the model removes it.
+- **What the rule engine adds.** Without it, the llm-only agent still decides correctly, but over-cites. 52% of its citations name rules that did not fail. It cites no rules that don't exist.
+- **Judgement rules alone:** 24 of 24 correct on every rule.
+- **Letters**, graded by the LLM judge: 27 of 27 runs ask for every missing document and nothing extra, plain English 4.96 out of 5. The judge is not calibrated yet (see Limitations).
+- **Showcase:** the agent matches all 8 hand-written scenarios.
+- **Read the 1.000s with care.** With 0 errors in 24 cases, the true error rate could still be about 12.5% (the rule of three, 3 ÷ 24). The intervals overlap, so these variants are not proven different from each other.
+
+Full tables: `evals/snapshot/ablation.md`, with every report in `evals/snapshot/reports/`.
 
 ## What the evals caught
 
-The first agent prompt was copied word for word from the spec. On the test split it scored **0.417** next-action accuracy, and it escalated almost every clean and missing-document case. The failure table pointed at one sentence: *"You cannot grant, issue, or act on anything at or after examination."* The model read the `issued` state as covered by "issue", so it treated in-scope cases as out of scope.
+The measurements found six real problems. Each was traced to a cause and fixed on dev or the showcase, and the test split was rerun once. All earlier runs are kept. The full write-up is in `evals/snapshot/prompt_story.md`.
 
-The component eval had already shown the judgement rules scoring 24 of 24, so the judge was not the cause. Prompt v3 changes only the agent prompt: it states the scope plainly and uses the same outcome definitions as the single-call diagnoser. It was tuned on the dev split only, then run on the test split once. Both runs are kept in `evals/results/`, and the change is logged in `PROGRESS.md`.
+1. **One sentence made the agent refuse its own work.** The spec's agent prompt said it could not "issue, or act on anything at or after examination", and the model read the `issued` state as off-limits. Test accuracy 0.417. The component eval had already cleared the judge, which pointed at the prompt. After the fix: 1.000.
+2. **Natural wording broke a rule the test set called perfect.** The hand-written showcase matched only 6 of 8. The judge failed real-looking wills for having "no actual signatures, only typed names". The rule question was ambiguous for a transcription. After the fix: 8 of 8, and the test split held at 24 of 24.
+3. **The letter grader graded at the wrong unit.** It failed correct letters because the agent wrote one letter per missing document. It now grades what the applicant receives.
+4. **"Invented citations" were not invented.** llm-only's 0.514 was over-citing real rules, not hallucination. It is now reported as two separate numbers.
+5. **The intervals were too narrow.** Repeated runs of a case are not independent. Intervals now resample by case.
+6. **Correct refusals counted as unfinished runs.** Fixed.
 
-Two eval bugs came out of the same review and were fixed: the confidence intervals now resample whole cases (with k=3, repeated runs are not independent), and a scope-guard refusal now counts as a completed run.
+Four of the six were problems in the measurement, not the system. That is why the eval code has its own tests.
 
 ## How to run
 
@@ -58,15 +81,17 @@ cp .env.example .env          # then put your ANTHROPIC_API_KEY in .env
 Diagnose one case, or run the agent with approval prompts:
 
 ```bash
-.venv/bin/python cli.py PRB-G016                 # single Haiku call
-.venv/bin/python cli.py PRB-G016 --mode rules    # rules only, no model call
-.venv/bin/python cli.py PRB-G016 --mode agent    # agent loop, then approve? [y/n/skip]
+.venv/bin/python cli.py PRB-S004                 # single Haiku call
+.venv/bin/python cli.py PRB-S004 --mode rules    # rules only, no model call
+.venv/bin/python cli.py PRB-S002 --mode agent    # agent loop, then approve? [y/n/skip]
 ```
 
-The demo:
+The demo (see `DEMO.md` for the run-sheet):
 
 ```bash
-.venv/bin/streamlit run app.py
+.venv/bin/streamlit run app.py                    # showcase scenarios and the eval results
+.venv/bin/python scripts/watch_trace.py           # live view of the agent's steps, in a second terminal
+.venv/bin/python scripts/showcase.py --yes        # all 8 scenarios in the terminal (backup)
 ```
 
 The evals (runs over 10 model calls show an estimate and ask first; `--yes` skips the question):

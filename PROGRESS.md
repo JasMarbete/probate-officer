@@ -89,6 +89,38 @@ Milestone log for ProbateOfficer. Each milestone gets a dated entry.
 - **`--k` defaults to `config.EVAL_K` (3).** `rules` always runs k=1, as the spec says.
 - **The cost estimate uses fixed token counts** (2,000 in, 350 out per call). It is rough. Prices are still 0, so the cost shows $0.
 
+### M7: Full evals (2026-10-29)
+- Golden set grows to 40 cases (16 dev, 24 test) with the spec's v2 mix. `make_plan(20)` reproduces the v1 set exactly. The generator is split into `scripts/case_factory.py` and `scripts/make_cases.py`.
+- New variants: `llm_only` (no rule-check tool, rules pasted into the prompt), `agent_write` (proposals recorded, never approved), `baseline` (M8).
+- `evals/judge.py`: LLM letter judge, hand-score export (`--export`) and calibration (`--calibrate`). `evals/component.py`: each judgement rule alone. `evals/compare.py`: ablation table and failure analysis.
+- `python -m evals.report <folder>` rebuilds a report from saved rows.
+
+**Eval fixes found during M7 (all logged in `evals/snapshot/prompt_story.md`):**
+- Bootstrap intervals now resample whole cases, since the k runs of a case are not independent.
+- A scope-guard refusal counts as a completed run (completion had been 0.917, all of it refusals).
+- The spec's invented-citation metric is now two numbers: off-list citations (a real rule that did not fail) and non-existent rule IDs (hallucination). llm-only's 0.514 was all over-citing, with 0 hallucinated IDs.
+- The letter judge now grades all of a run's letters together. Graded one letter at a time, it failed 6 correct letters from a case with two missing documents.
+
+**Prompt v3 (agent prompt only):** the spec's sentence "You cannot grant, issue, or act on anything at or after examination" made the agent escalate in-scope `issued` cases. Test accuracy 0.417 (`20261029-191112_agent_test`). v3 states the scope and uses the diagnoser's outcome definitions. Dev 16 of 16, then test 1.000 (`20261029-193154_agent_test`).
+
+**Prompt v4 (rule R-WILL-05 only):** the hand-written showcase matched 6 of 8. The judge failed naturally worded wills for "no actual signatures, only typed names." The rule question now says how a signature appears in a transcription. Showcase 8 of 8, dev component 16 of 16 per rule. Every variant that reads the judgement rules was rerun once on test. The v4 numbers are in the README and `evals/snapshot/ablation.md`.
+
+**Owner input still needed:** 15 hand-scored letter sets in `evals/human_scores.jsonl`. Run `python -m evals.judge --export --run <agent_write folder>` to get them in readable form.
+
+### M8: PyTorch baseline (2026-10-29)
+- `make_cases.py --train 300` writes templated training cases with a different seed to `baseline/train_cases/`.
+- `baseline/train_baseline.py`: TF-IDF (fit on training data only) and `torch.nn.Linear`, Adam, 200 epochs. Loss 0.92 → 0.65. Predicts the next action only, with no stop reasons.
+- Test split: next-action accuracy 0.625 [0.417, 0.833], unsafe-action rate 0.083.
+
+### M9: Demo and write-up (2026-10-29)
+- `app.py` (Streamlit): showcase mode with 8 hand-written scenarios, rules-only beside the agent, an expected-outcome check, approve and reject, the trace and the cost. The Evals tab shows the committed snapshot in `evals/snapshot/`.
+- `scripts/make_showcase.py`, `scripts/showcase.py` (terminal backup), `scripts/watch_trace.py` (live view of the audit log).
+- `README.md` rewritten. `DESIGN.md`, `DEMO.md` and the WALKTHROUGH entries are added.
+
+**Deviations:**
+- `evals/results/` stays git-ignored, as the spec says. A snapshot of the final reports is committed in `evals/snapshot/`, so the demo works on a fresh clone.
+- `officer/rules.py` is 211 lines, over the guide. Splitting the judgement checks into their own file is proposed, along with the seven-component layout. Owner's call.
+
 ### M6: Write actions and the approval gate (2026-10-29)
 - Added `officer/gate.py`: `ALLOWED_TRANSITIONS`, and `Gate` with `propose`, `decide` and `_apply`. Nothing changes until `decide(..., approved=True)`. Each proposal can be decided once. Each decision is logged to the audit trail and to `data/preferences.jsonl`.
 - Added five WRITE tools to `officer/tools.py`: `stop_case`, `request_document`, `add_case_note`, `route_to_examiner`, `escalate`. The `execute` function routes them only to `gate.propose`.

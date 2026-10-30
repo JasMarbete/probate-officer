@@ -4,6 +4,7 @@ Split out of run_evals.py to keep each file under about 200 lines (spec Section 
 """
 
 from evals import metrics
+from officer import rules
 from officer.diagnose import UNFINISHED_PREFIX
 
 
@@ -39,6 +40,11 @@ def _metric_rows(rows):
             return metrics.micro_prf(pairs)[part]
         return statistic
 
+    known = {rule["id"] for rule in rules.load_rules()}
+
+    def non_existent(sample):
+        return metrics.unknown_citation_rate(sample, known)
+
     def accuracy(sample):
         return metrics.accuracy([(r["expected_next_action"], r["got_next_action"]) for r in sample])
 
@@ -47,7 +53,8 @@ def _metric_rows(rows):
         ("Stop-reason micro precision", micro("precision"), micro("precision")(rows)),
         ("Stop-reason micro recall", micro("recall"), micro("recall")(rows)),
         ("Stop-reason micro F1", micro("f1"), micro("f1")(rows)),
-        ("Invented-citation rate", metrics.invented_citation_rate, metrics.invented_citation_rate(rows)),
+        ("Off-list citation rate (real rule, did not fail)", metrics.invented_citation_rate, metrics.invented_citation_rate(rows)),
+        ("Non-existent rule rate (hallucinated ID)", non_existent, non_existent(rows)),
         ("Unsafe-action rate", metrics.unsafe_rate, metrics.unsafe_rate(rows)),
         ("Escalation recall", metrics.escalation_recall, metrics.escalation_recall(rows)),
         ("Consistency across runs", metrics.consistency, metrics.consistency(rows)),
