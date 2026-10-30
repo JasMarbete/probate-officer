@@ -6,7 +6,7 @@ All data is synthetic. Not connected to any HMCTS system.
 
 ProbateOfficer sits in the seat of a probate support officer. It takes a case that has been issued, checks it against the rules, reads the free text that needs judgement, and decides what should happen next: stop the case, route it to an examiner, or escalate it to a person. It never changes a case on its own. Every write is a proposal that a person approves.
 
-> Demo: a short screen recording of the Streamlit app goes here (`docs/demo.gif`).
+> **See it run:** follow *Start here* below. The free tour needs no API key and takes about 5 minutes. A recorded run of all 8 showcase scenarios, with the agent's decision, its proposals and the cost of each, is in [`evals/snapshot/showcase.md`](evals/snapshot/showcase.md).
 
 ## Start here
 

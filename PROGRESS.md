@@ -52,7 +52,7 @@ Milestone log for ProbateOfficer. Each milestone gets a dated entry.
 
 **Check output summary:**
 - `env -u ANTHROPIC_API_KEY pytest`: 38 passed. The suite needs no key.
-- `python cli.py PRB-0002` (live, one call): `Next action: stop_case`, `Stop reasons: DEATH_CERT_MISSING`, `Rules cited: R-DOC-01, R-WILL-05, R-WILL-06, R-WILL-07, R-NAME-01`. Usage: 1 call, 1987 input tokens, 338 output tokens. Cost shows $0.000000 because the prices are still 0.
+- `python cli.py PRB-0002` (live, one call): `Next action: stop_case`, `Stop reasons: DEATH_CERT_MISSING`, `Rules cited: R-DOC-01, R-WILL-05, R-WILL-06, R-WILL-07, R-NAME-01`. Usage: 1 call, 1987 input tokens, 338 output tokens. Cost showed $0.000000 because the prices were still 0 at the time. They were set in M6.
 - Out-of-scope check, using a temp copy with `PRB-0001` set to `granted`: `next_action: refuse_out_of_scope`, `API calls: 0`.
 
 **Deviations:**
@@ -87,66 +87,7 @@ Milestone log for ProbateOfficer. Each milestone gets a dated entry.
 - **`scripts/make_cases.py` is 222 lines**, over the spec's 200-line guide. Proposed split, not yet done: move the fault functions and `FAULTS` into a separate `scripts/faults.py`. The owner decides.
 - **`tests/test_golden.py` and `tests/test_report.py` are extra test files.** The spec's Section 4 layout does not list them, but they cover the golden labels and the report logic.
 - **`--k` defaults to `config.EVAL_K` (3).** `rules` always runs k=1, as the spec says.
-- **The cost estimate uses fixed token counts** (2,000 in, 350 out per call). It is rough. Prices are still 0, so the cost shows $0.
-
-### Restructure into seven components (2026-10-30)
-- `officer/` is now one package per step in the job: `intake` (store, email reader), `scope` (new `guard.py`), `checks` (deterministic rules), `judgement` (new `judge_rules.py`, split from `rules.py`), `decision` (agent, diagnose, tools), `gate` (approval) and `audit` (trail). `models.py`, `llm.py` and `prompts.py` stay shared.
-- The scope guard was copied in the diagnoser and the agent. It is now one module, used by both.
-- Each component has a `README.md` contract. Added `tests/test_scope.py` and `tests/test_audit.py`. 148 tests pass.
-- Every file in `officer/` is now under 200 lines. `rules.py` (211) became `checks/rules.py` (147) and `judgement/judge_rules.py` (76).
-
-**Behaviour unchanged, checked four ways:** the 141 existing tests pass. Rules-only output is identical on all 51 cases before and after. Regenerated golden, training and showcase data are byte-identical. The live showcase matches 8 of 8.
-
-**Deviation:** the spec's Section 4 layout lists flat files in `officer/` (such as `officer/rules.py`). The paths changed, but the spec's rules hold: `officer/llm.py` is still the only module that imports `anthropic`, and tests still mock `officer.llm.call`. Older entries below keep the old paths as history.
-
-### M7: Full evals (2026-10-29)
-- Golden set grows to 40 cases (16 dev, 24 test) with the spec's v2 mix. `make_plan(20)` reproduces the v1 set exactly. The generator is split into `scripts/case_factory.py` and `scripts/make_cases.py`.
-- New variants: `llm_only` (no rule-check tool, rules pasted into the prompt), `agent_write` (proposals recorded, never approved), `baseline` (M8).
-- `evals/judge.py`: LLM letter judge, hand-score export (`--export`) and calibration (`--calibrate`). `evals/component.py`: each judgement rule alone. `evals/compare.py`: ablation table and failure analysis.
-- `python -m evals.report <folder>` rebuilds a report from saved rows.
-
-**Eval fixes found during M7 (all logged in `evals/snapshot/prompt_story.md`):**
-- Bootstrap intervals now resample whole cases, since the k runs of a case are not independent.
-- A scope-guard refusal counts as a completed run (completion had been 0.917, all of it refusals).
-- The spec's invented-citation metric is now two numbers: off-list citations (a real rule that did not fail) and non-existent rule IDs (hallucination). llm-only's 0.514 was all over-citing, with 0 hallucinated IDs.
-- The letter judge now grades all of a run's letters together. Graded one letter at a time, it failed 6 correct letters from a case with two missing documents.
-
-**Prompt v3 (agent prompt only):** the spec's sentence "You cannot grant, issue, or act on anything at or after examination" made the agent escalate in-scope `issued` cases. Test accuracy 0.417 (`20261029-191112_agent_test`). v3 states the scope and uses the diagnoser's outcome definitions. Dev 16 of 16, then test 1.000 (`20261029-193154_agent_test`).
-
-**Prompt v4 (rule R-WILL-05 only):** the hand-written showcase matched 6 of 8. The judge failed naturally worded wills for "no actual signatures, only typed names." The rule question now says how a signature appears in a transcription. Showcase 8 of 8, dev component 16 of 16 per rule. Every variant that reads the judgement rules was rerun once on test. The v4 numbers are in the README and `evals/snapshot/ablation.md`.
-
-**Owner input still needed:** 15 hand-scored letter sets in `evals/human_scores.jsonl`. Run `python -m evals.judge --export --run <agent_write folder>` to get them in readable form.
-
-### M8: PyTorch baseline (2026-10-29)
-- `make_cases.py --train 300` writes templated training cases with a different seed to `baseline/train_cases/`.
-- `baseline/train_baseline.py`: TF-IDF (fit on training data only) and `torch.nn.Linear`, Adam, 200 epochs. Loss 0.92 → 0.65. Predicts the next action only, with no stop reasons.
-- Test split: next-action accuracy 0.625 [0.417, 0.833], unsafe-action rate 0.083.
-
-### M9: Demo and write-up (2026-10-29)
-- `app.py` (Streamlit): showcase mode with 8 hand-written scenarios, rules-only beside the agent, an expected-outcome check, approve and reject, the trace and the cost. The Evals tab shows the committed snapshot in `evals/snapshot/`.
-- `scripts/make_showcase.py`, `scripts/showcase.py` (terminal backup), `scripts/watch_trace.py` (live view of the audit log).
-- `README.md` rewritten. `DESIGN.md`, `DEMO.md` and the WALKTHROUGH entries are added.
-
-**Deviations:**
-- `evals/results/` stays git-ignored, as the spec says. A snapshot of the final reports is committed in `evals/snapshot/`, so the demo works on a fresh clone.
-- `officer/rules.py` is 211 lines, over the guide. Splitting the judgement checks into their own file is proposed, along with the seven-component layout. Owner's call.
-
-### M6: Write actions and the approval gate (2026-10-29)
-- Added `officer/gate.py`: `ALLOWED_TRANSITIONS`, and `Gate` with `propose`, `decide` and `_apply`. Nothing changes until `decide(..., approved=True)`. Each proposal can be decided once. Each decision is logged to the audit trail and to `data/preferences.jsonl`.
-- Added five WRITE tools to `officer/tools.py`: `stop_case`, `request_document`, `add_case_note`, `route_to_examiner`, `escalate`. The `execute` function routes them only to `gate.propose`.
-- Added templates `data/templates/req_death_certificate.txt` and `req_original_will.txt`. `get_template` now returns them.
-- `agent.run_case(..., allow_write=True)` now creates a gate and returns it. Without writes, a WRITE call returns an error to the model.
-- CLI agent mode allows writes, lists each proposal, and asks `approve? [y/n/skip]`. No terminal means everything stays pending.
-- Added the `agent_write` eval variant. It records proposals and never approves them.
-- Added `tests/test_gate.py` (11 tests). The suite has 119 tests, all passing.
-
-**Check output summary:**
-- Acceptance run: `printf 'y\n...' | cli.py PRB-0002 --mode agent`. The agent proposed `escalate`, which was approved. The case went from `issued` to `escalated`, and one preference line was written. The proposal was `escalate`, not `stop_case`, because of the `issued` misreading seen before. The gate tests cover `stop_case` and `request_document` directly.
-- After the run, the case file was restored from git and the test preference line was deleted.
-
-**Deviations:**
-- `execute` passes the gate to WRITE tools, and `run_case` returns the gate, which the spec implies but does not show.
-- `ALLOWED_TRANSITIONS` also allows `stopped` to `stopped`, because the spec lists `issued` or `stopped` as the source states.
+- **The cost estimate uses fixed token counts** (2,000 in, 350 out per call). It is rough. Prices were still 0 at the time; they were set in M6.
 
 ### M5: Read-only agent loop and audit trail (2026-10-29)
 - Added `officer/audit.py`: `log` writes one JSON line per event to `logs/trace.jsonl`. `read_run` and `last_run_id` read it back.
@@ -187,19 +128,85 @@ Milestone log for ProbateOfficer. Each milestone gets a dated entry.
 - **Agent mode in `cli.py` does not apply the cost guard.** It makes one run of up to about 6 to 8 calls, and the guard in `run_evals.py` covers the eval runs. Spec Rule 8 applies to any script that makes more than 10 calls, so this may need adding.
 - **The agent estimate in the cost guard is rough** (`ESTIMATE_AGENT_CALLS = 6`, per run). The observed agent dev run used 48 calls, which matches the estimate.
 
-## Open questions (added in M3)
-- **Prices:** `PRICE_IN_PER_M` and `PRICE_OUT_PER_M` are still 0. The owner fills them in from Anthropic's pricing page. Until then, costs are reported as $0.
+### Extension: email intake, dry run (2026-10-29)
+- Added `officer/intake/email_reader.py` and `scripts/interpret_email.py`. They read one incoming email and find the case reference, the intents (status enquiry, document submitted, reported fact) and any reported fact. They then plan the CCD calls the system would make, each with its input and expected output. Nothing is executed or sent, and every write is a proposal.
+- Plain pattern matching, with no model call. Tests: `tests/test_intake.py`, including an email that tries to approve actions.
+
+### M6: Write actions and the approval gate (2026-10-29)
+- Added `officer/gate.py`: `ALLOWED_TRANSITIONS`, and `Gate` with `propose`, `decide` and `_apply`. Nothing changes until `decide(..., approved=True)`. Each proposal can be decided once. Each decision is logged to the audit trail and to `data/preferences.jsonl`.
+- Added five WRITE tools to `officer/tools.py`: `stop_case`, `request_document`, `add_case_note`, `route_to_examiner`, `escalate`. The `execute` function routes them only to `gate.propose`.
+- Added templates `data/templates/req_death_certificate.txt` and `req_original_will.txt`. `get_template` now returns them.
+- `agent.run_case(..., allow_write=True)` now creates a gate and returns it. Without writes, a WRITE call returns an error to the model.
+- CLI agent mode allows writes, lists each proposal, and asks `approve? [y/n/skip]`. No terminal means everything stays pending.
+- Added the `agent_write` eval variant. It records proposals and never approves them.
+- Added `tests/test_gate.py` (11 tests). The suite has 119 tests, all passing.
+
+**Check output summary:**
+- Acceptance run: `printf 'y\n...' | cli.py PRB-0002 --mode agent`. The agent proposed `escalate`, which was approved. The case went from `issued` to `escalated`, and one preference line was written. The proposal was `escalate`, not `stop_case`, because of the `issued` misreading seen before. The gate tests cover `stop_case` and `request_document` directly.
+- After the run, the case file was restored from git and the test preference line was deleted.
+
+**Deviations:**
+- `execute` passes the gate to WRITE tools, and `run_case` returns the gate, which the spec implies but does not show.
+- `ALLOWED_TRANSITIONS` also allows `stopped` to `stopped`, because the spec lists `issued` or `stopped` as the source states.
+
+### M7: Full evals (2026-10-29)
+- Golden set grows to 40 cases (16 dev, 24 test) with the spec's v2 mix. `make_plan(20)` reproduces the v1 set exactly. The generator is split into `scripts/case_factory.py` and `scripts/make_cases.py`.
+- New variants: `llm_only` (no rule-check tool, rules pasted into the prompt), `agent_write` (proposals recorded, never approved), `baseline` (M8).
+- `evals/judge.py`: LLM letter judge, hand-score export (`--export`) and calibration (`--calibrate`). `evals/component.py`: each judgement rule alone. `evals/compare.py`: ablation table and failure analysis.
+- `python -m evals.report <folder>` rebuilds a report from saved rows.
+
+**Eval fixes found during M7 (all logged in `evals/snapshot/prompt_story.md`):**
+- Bootstrap intervals now resample whole cases, since the k runs of a case are not independent.
+- A scope-guard refusal counts as a completed run (completion had been 0.917, all of it refusals).
+- The spec's invented-citation metric is now two numbers: off-list citations (a real rule that did not fail) and non-existent rule IDs (hallucination). llm-only's 0.514 was all over-citing, with 0 hallucinated IDs.
+- The letter judge now grades all of a run's letters together. Graded one letter at a time, it failed 6 correct letters from a case with two missing documents.
+
+**Prompt v3 (agent prompt only):** the spec's sentence "You cannot grant, issue, or act on anything at or after examination" made the agent escalate in-scope `issued` cases. Test accuracy 0.417 (`20261029-191112_agent_test`). v3 states the scope and uses the diagnoser's outcome definitions. Dev 16 of 16, then test 1.000 (`20261029-193154_agent_test`).
+
+**Prompt v4 (rule R-WILL-05 only):** the hand-written showcase matched 6 of 8. The judge failed naturally worded wills for "no actual signatures, only typed names." The rule question now says how a signature appears in a transcription. Showcase 8 of 8, dev component 16 of 16 per rule. Every variant that reads the judgement rules was rerun once on test. The v4 numbers are in the README and `evals/snapshot/ablation.md`.
+
+**Owner input still needed:** 15 hand-scored letter sets in `evals/human_scores.jsonl`. Run `python -m evals.judge --export --run <agent_write folder>` to get them in readable form.
+
+### M8: PyTorch baseline (2026-10-29)
+- `make_cases.py --train 300` writes templated training cases with a different seed to `baseline/train_cases/`.
+- `baseline/train_baseline.py`: TF-IDF (fit on training data only) and `torch.nn.Linear`, Adam, 200 epochs. Loss 0.92 → 0.65. Predicts the next action only, with no stop reasons.
+- Test split: next-action accuracy 0.625 [0.417, 0.833], unsafe-action rate 0.083.
+
+### M9: Demo and write-up (2026-10-29)
+- `app.py` (Streamlit): showcase mode with 8 hand-written scenarios, rules-only beside the agent, an expected-outcome check, approve and reject, the trace and the cost. The Evals tab shows the committed snapshot in `evals/snapshot/`.
+- `scripts/make_showcase.py`, `scripts/showcase.py` (terminal backup), `scripts/watch_trace.py` (live view of the audit log).
+- `README.md` rewritten. `DESIGN.md`, `DEMO.md` and the WALKTHROUGH entries are added.
+
+**Deviations:**
+- `evals/results/` stays git-ignored, as the spec says. A snapshot of the final reports is committed in `evals/snapshot/`, so the demo works on a fresh clone.
+- `officer/rules.py` is 211 lines, over the guide. Splitting the judgement checks into their own file is proposed, along with the seven-component layout. Owner's call.
+
+### Restructure into seven components (2026-10-30)
+- `officer/` is now one package per step in the job: `intake` (store, email reader), `scope` (new `guard.py`), `checks` (deterministic rules), `judgement` (new `judge_rules.py`, split from `rules.py`), `decision` (agent, diagnose, tools), `gate` (approval) and `audit` (trail). `models.py`, `llm.py` and `prompts.py` stay shared.
+- The scope guard was copied in the diagnoser and the agent. It is now one module, used by both.
+- Each component has a `README.md` contract. Added `tests/test_scope.py` and `tests/test_audit.py`. 148 tests pass.
+- Every file in `officer/` is now under 200 lines. `rules.py` (211) became `checks/rules.py` (147) and `judgement/judge_rules.py` (76).
+
+**Behaviour unchanged, checked four ways:** the 141 existing tests pass. Rules-only output is identical on all 51 cases before and after. Regenerated golden, training and showcase data are byte-identical. The live showcase matches 8 of 8.
+
+**Deviation:** the spec's Section 4 layout lists flat files in `officer/` (such as `officer/rules.py`). The paths changed, but the spec's rules hold: `officer/llm.py` is still the only module that imports `anthropic`, and tests still mock `officer.llm.call`. Older entries below keep the old paths as history.
+
+## Open questions (current, 2026-10-30)
+
+- **Judge calibration:** needs 15 hand-scored letter sets in `evals/human_scores.jsonl`. Export them with `python -m evals.judge --export --run evals/results/<agent_write folder>`. Until then, judge agreement is unreported.
+- **Golden-label review:** the owner should spot-check at least 1 in 3 golden labels (spec Section 14).
+- **Rules:** all 11 rules are EXAMPLE rules. The probate source pack in `data/shelf/` (git-ignored) is not yet paraphrased into rules.
+- **Rule wording:** R-WILL-05, R-WILL-07 and R-NAME-01 were reworded during the build so they pass and fail correctly. The owner should confirm the wording.
+
+**Resolved:**
+- **Prices:** set in M6 from https://claude.com/pricing: $0.10 input and $0.50 output per million tokens, for prompts up to 100K tokens.
+- **Python version:** the README says Python 3.11 or newer, and uses `python3.12` in its commands.
+- **Retry count:** 3 attempts with 2s and 4s waits, as implemented. Not re-raised.
 
 ## Shelf ambiguities
 - The shelf is empty. Every rule uses `source: "EXAMPLE"`.
 - The probate source pack (`data/shelf/probate_process_source_pack.md`) is not converted into rules yet. The owner's review comes first.
 - Fee and timescale conflicts from the source pack are not reflected in any rule.
-
-## Open questions
-
-- **Shelf data:** `data/shelf/` is empty, so M2 will use the EXAMPLE rules unless shelf content is added first.
-- **Prices:** `PRICE_IN_PER_M` and `PRICE_OUT_PER_M` in `config.py` are still 0.0. The owner fills them from Anthropic's pricing page.
-- **Python version:** the spec asks for 3.11+. The project venv uses Python 3.14 (`/opt/homebrew/bin/python3.14`). The system `python3` is 3.9, which is too old.
 
 ## Deviations
 
@@ -214,5 +221,7 @@ Milestone log for ProbateOfficer. Each milestone gets a dated entry.
 
 ## Next
 
-- **M1:** `officer/models.py`, `officer/store.py`, three hand-written cases in `data/cases/`, and `tests/test_store.py`.
-- Before M1, the owner should check the `.env` key with `python scripts/ping.py`, and add shelf data to `data/shelf/` if they have it.
+- **A harder test set.** 24 templated cases are small and easy. Add near-miss cases (one witness, a codicil that was lodged, misspelt names), varied natural wording, and injection hidden in the will text itself. The showcase already showed natural prose exposing a rule the test set called perfect.
+- **Reliability metrics.** Report pass^k (all k runs right) beside accuracy, and how large a difference the test set can detect.
+- **Judge calibration**, once the hand scores are in.
+- **Learn from the preference log.** Each approve or reject is a labelled example. Enough of them could train a reward model to rank proposals.
