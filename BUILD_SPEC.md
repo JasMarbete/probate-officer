@@ -107,7 +107,7 @@ Version 1 creates the files marked **[v1]**. Everything else arrives in version 
 probate-officer/
 ├── BUILD_SPEC.md            [v1] this file
 ├── PROGRESS.md              [v1] milestone log, open questions, deviations
-├── WALKTHROUGH.md           [v1] file-by-file explanation for the owner (Section 13)
+├── WALKTHROUGH.md           [v1] file-by-file explanation for the owner (Section 13; kept private, not committed)
 ├── README.md                [v1 short → full in M9]
 ├── DESIGN.md                [M9]
 ├── requirements.txt         [v1]
@@ -884,6 +884,9 @@ Every check type, the scope guard, Diagnosis parsing and failure, every agent-lo
 ## 13. Explainability requirements (so the owner can explain every line)
 
 ### `WALKTHROUGH.md`
+
+The owner's own study notes. It is kept on the owner's machine and is not committed to the repo.
+
 Update it at the end of every milestone. For each new or changed file, include:
 1. What it does, in 2–3 sentences.
 2. Its key functions and what each one takes and returns.

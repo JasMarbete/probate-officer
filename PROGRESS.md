@@ -219,6 +219,8 @@ Milestone log for ProbateOfficer. Each milestone gets a dated entry.
 - **Store default directories are read at call time.** `load_case`, `save_case` and `list_cases` take `directory=None` and fall back to `config.CASES_DIR` when called. The spec shows the default as a fixed value. Reading it at call time lets tests redirect the store, so tests never write to real files.
 - **`test_three_hand_written_cases_load` reads the real `data/cases/`.** It is read-only and matches the M1 acceptance criteria. All other store tests use a temp folder.
 
+- **`WALKTHROUGH.md` is kept private.** Spec Section 13's file-by-file guide is the owner's study notes, so it is git-ignored rather than committed. It covers every file.
+
 ## Next
 
 - **A harder test set.** 24 templated cases are small and easy. Add near-miss cases (one witness, a codicil that was lodged, misspelt names), varied natural wording, and injection hidden in the will text itself. The showcase already showed natural prose exposing a rule the test set called perfect.

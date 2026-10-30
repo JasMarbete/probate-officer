@@ -191,6 +191,17 @@ Regenerate the data and the baseline:
 - **Email intake.** `officer/intake/email_reader.py` already reads an incoming email and plans the CCD calls as a dry run. An LLM version, evaluated the same way, is the next step.
 - **Harder cases.** Varied, LLM-rewritten case text, so the evals test reading rather than template matching.
 
+## How this was built
+
+I built this with Claude Code, an AI coding agent, from a build spec I own ([`BUILD_SPEC.md`](BUILD_SPEC.md)). The agent wrote most of the code, and every commit it helped with says so (`Co-Authored-By: Claude`).
+
+I directed the build milestone by milestone and made the calls along the way:
+- **The scope and the guardrails**, set in the spec: what the system may and may not do, which steps belong to code rather than the model, and every change going through a person.
+- **The structure:** the officer's job broken into seven steps, one component per step.
+- **What to build next:** example rules until the real probate rules are paraphrased, the showcase scenarios, and the email-intake extension.
+
+The agent also did much of the investigation behind the six eval findings above. The loop is the point: break the process down, translate it into an agent, and measure whether it really does the job.
+
 ## Repo map
 
 | Path | What it is |
